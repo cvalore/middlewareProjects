@@ -1,0 +1,93 @@
+README - image_server api
+Alessio Russo, Carmelo Valore
+11/03/2020
+
+------------
+1. Overview
+------------
+This readme shows how to use the image_server api through "Postman" Google Chrome's extension,
+altough everything can be done via terminal or through other extensions.
+
+-----------------------------------
+2. (Optional - Download of Postman)
+-----------------------------------
+Just download Postman extension by using Google Chrome's app store.
+
+----------------
+3. Instructions
+----------------
+-   to get users:
+                        send a GET request to
+                        http://localhost:8080/image_server/api/users
+
+-   to get a user:
+                        send a GET request to
+                        http://localhost:8080/image_server/api/users/xxxx
+    where xxxx is the uuid of the user you want to get
+
+-   to add a user:
+                        send a POST request to
+                        http://localhost:8080/image_server/api/users
+    using as headers "Content-Type:application/json"
+    and then pass the user as a json object specifying the name
+    e.g. {"name":"username"}
+
+-   to modify a user:
+                        send a PUT request to
+                        http://localhost:8080/image_server/api/users/xxxx
+    where xxxx is the uuid of the user you want to modify
+    using as headers "Content-Type:application/json"
+    and then pass the user as a json object specifying the name
+    e.g. {"name":"new_username"}
+
+-   to delete a user:
+                        send a DELETE request to
+                        http://localhost:8080/image_server/api/users/xxxx
+    where xxxx is the uuid of the user you want to delete
+
+-   to get all images:
+                        send a GET request to
+                        http://localhost:8080/image_server/api/images
+
+-   to get all images of a user:
+                        send a GET request to
+                        http://localhost:8080/image_server/api/images/xxxx
+    where xxxx is the uuid of the user you want to get images of
+
+-   to get an image:
+                        send a GET request to
+                        http://localhost:8080/image_server/api/images/xxxx/yyyy
+    where xxxx is the uuid of the user you want to get image of
+    where yyyy is the uuid of the image you want to get
+
+-   to upload an image:
+                        send a POST request to
+                        http://localhost:8080/image_server/api/images/xxxx
+    where xxxx is the uuid of the user you want to upload the image to
+    using as format of the body "form-data", with key "file"..
+        and (setting the drop down menu value to "File") upload the .jpg file
+
+-   to rename an image of a user:
+                        send a PUT request to
+                        http://localhost:8080/image_server/api/images/xxxx/yyyy
+    where xxxx is the uuid of the user you want to rename the images of
+    where yyyy is the uuid of the image you want to rename
+    using as headers "Content-Type:application/json"
+    and then pass the user as a json object specifying the name
+    e.g. {"title":"new_title"}
+
+-   to delete all the images of a user:
+                        send a DELETE request to
+                        http://localhost:8080/image_server/api/images/xxxx
+    where xxxx is the uuid of the user you want to delete the images of
+
+-   to delete an image of a user:
+                        send a DELETE request to
+                        http://localhost:8080/image_server/api/images/xxxx/yyyy
+    where xxxx is the uuid of the user you want to delete the images of
+    where yyyy is the uuid of the image you want to delete
+
+---------
+4. Notes
+---------
+Navigations through links is made easy using HATEOAS principles, that is using hypermedia links
