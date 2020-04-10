@@ -7,9 +7,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.Date;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -25,16 +22,7 @@ public class NyTest {
             Logger.getLogger("org").setLevel(Level.OFF);
             Logger.getLogger("akka").setLevel(Level.OFF);
 
-            FileWriter fileWriter = null;
-            PrintWriter printWriter = null;
-            try {
-                  fileWriter = new FileWriter("files/output_spark_sql.txt");
-                  printWriter = new PrintWriter(fileWriter);
-            } catch (IOException e) {
-                  System.err.println("Error in output file " + e.getCause().getMessage());
-            }
-
-            final String master = args.length > 0 ? args[0] : "local[4]";
+            final String master = args.length > 0 ? args[0] : "local[8]"/*"spark://master:7077"*/;
             final String filePath = args.length > 1 ? args[1] : "./";
 
             final SparkSession spark = SparkSession
@@ -174,25 +162,14 @@ public class NyTest {
             }
 
             System.out.printf("\nQUERY 1:\n");
-            if(printWriter != null) {
-                  printWriter.printf("\nQUERY 1:\n");
-            }
-
             for(int i = 0; i < weeksNo; i++) {
                   //System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents[i], "lethal accidents");
                   System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents.get(i), "lethal accidents");
-                  if(printWriter != null) {
-                        //printWriter.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents[i], "lethal accidents");
-                        printWriter.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents.get(i), "lethal accidents");
-                  }
 
                   //totalLethalAccidents += lethalAccidents[i];
                   totalLethalAccidents += lethalAccidents.get(i);
             }
             System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
-            if(printWriter != null) {
-                  printWriter.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
-            }
 
             long query1Time = System.nanoTime() - startQuery1Time;
             //end of query1
@@ -313,10 +290,7 @@ public class NyTest {
             int facLen = supportClasses2.size();
             System.out.printf("\nQUERY 2:\n");
             System.out.printf("\t%-60s%-20s%-20s%s%n", "FACTOR", "N_ACCIDENTS", "N_DEATHS", "PERC_N_DEATHS");
-            if(printWriter != null) {
-                  printWriter.printf("\nQUERY 2:\n");
-                  printWriter.printf("\t%-60s%-20s%-20s%s%n", "FACTOR", "N_ACCIDENTS", "N_DEATHS", "PERC");
-            }
+
             double perc = 0f;
             for(int i = 0; i < facLen; i++) {
                   //perc = accidents.get(i) != 0 ? ((lethals.get(i)*100.0f)/accidents.get(i)) : 0;
@@ -325,9 +299,6 @@ public class NyTest {
                         0;
 
                   System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", supportClasses2.get(i).getFactor(), supportClasses2.get(i).getAccidents(), supportClasses2.get(i).getLethals(), perc);
-                  if(printWriter != null) {
-                        printWriter.printf("\t%-60s%-20d%-20d%.2f%%%n", supportClasses2.get(i).getFactor(), supportClasses2.get(i).getAccidents(), supportClasses2.get(i).getLethals(), perc);
-                  }
             }
 
             long query2Time = System.nanoTime() - startQuery2Time;
@@ -450,33 +421,18 @@ public class NyTest {
             }
 
             System.out.printf("\nQUERY 3:\n");
-            if(printWriter != null) {
-                  printWriter.printf("\nQUERY 3:\n");
-            }
 
             for(int i = 0; i < supportClasses3a.size(); i++) {
                   System.out.printf("\tBOROUGH: %s\n", supportClasses3a.get(i).getBorough());
-                  if(printWriter != null) {
-                        printWriter.printf("\tBOROUGH: %s\n", supportClasses3a.get(i).getBorough());
-                  }
 
                   for(int j = 0; j < supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length(); j++) {
                         System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().get(j) , "accidents");
-                        if(printWriter != null) {
-                              printWriter.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().get(j) , "accidents");
-                        }
                   }
 
                   System.out.printf("\t\tAvg lethal accidents/week: %.2f%% (%d lethal accidents over %d weeks)\n\n",
                               (100.0f * supportClasses3b.get(i).getLethalsPerBoroughPerWeek())/supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length(),
                               supportClasses3b.get(i).getLethalsPerBoroughPerWeek(),
                               supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length());
-                  if(printWriter != null) {
-                        printWriter.printf("\t\tAvg lethal accidents/week: %.2f%% (%d lethal accidents over %d weeks)\n\n",
-                                    (100.0f * supportClasses3b.get(i).getLethalsPerBoroughPerWeek())/supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length(),
-                                    supportClasses3b.get(i).getLethalsPerBoroughPerWeek(),
-                                    supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length());
-                  }
             }
 
             long query3Time = System.nanoTime() - startQuery3Time;
@@ -487,15 +443,6 @@ public class NyTest {
             System.out.println("It took " + query1Time/1000000000.0f + " seconds to calculate query 1");
             System.out.println("It took " + query2Time/1000000000.0f + " seconds to calculate query 2");
             System.out.println("It took " + query3Time/1000000000.0f + " seconds to calculate query 3");
-            if(printWriter != null) {
-                  printWriter.printf("\nIt took %f seconds to load data\n", loadingTime/1000000000.0f);
-                  printWriter.printf("It took %f seconds to calculate query 1\n", query1Time/1000000000.0f);
-                  printWriter.printf("It took %f seconds to calculate query 2\n", query2Time/1000000000.0f);
-                  printWriter.printf("It took %f seconds to calculate query 3\n", query3Time/1000000000.0f);
-
-                  printWriter.close();
-            }
-
 
             Scanner scanner = new Scanner(System.in);
             scanner.nextLine();
