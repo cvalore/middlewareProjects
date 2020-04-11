@@ -1,0 +1,87 @@
+Macchine 4 core 12 gb
+
+1 master 2 workers:
+	Tiny executors 1 core/exec 4GB/exec:
+		It took 3.7493513 seconds to load data
+		It took 39.420242 seconds to calculate query 1
+		It took 19.97481 seconds to calculate query 2
+		It took 15.202053 seconds to calculate query 3
+
+	Fat executors 4 core/exec 10GB/exec:
+		It took 3.6890917 seconds to load data
+		It took 32.893787 seconds to calculate query 1
+		It took 20.991604 seconds to calculate query 2
+		It took 15.140295 seconds to calculate query 3
+	
+	Tradeoff 5 core/exec 8GB/exec:
+		It took 3.8100736 seconds to load data
+		It took 23.231182 seconds to calculate query 1
+		It took 15.627618 seconds to calculate query 2
+		It took 11.106648 seconds to calculate query 3
+	
+1 master 3 workers:
+	Tiny executors 1 core/exec 4GB/exec:
+		It took 5.3711166 seconds to load data
+		It took 32.760754 seconds to calculate query 1
+		It took 16.436115 seconds to calculate query 2
+		It took 11.520227 seconds to calculate query 3
+
+	Fat executors 4 core/exec 10GB/exec:
+		It took 4.0069385 seconds to load data
+		It took 25.028994 seconds to calculate query 1
+		It took 16.28184 seconds to calculate query 2
+		It took 10.934467 seconds to calculate query 3
+	
+	Tradeoff 5 core/exec 8GB/exec:
+		It took 4.0177226 seconds to load data
+		It took 20.489721 seconds to calculate query 1
+		It took 11.80836 seconds to calculate query 2
+		It took 8.993814 seconds to calculate query 3
+	
+1 master 4 workers:
+	Tiny executors 1 core/exec 4GB/exec:
+		It took 5.6681266 seconds to load data
+		It took 26.32204 seconds to calculate query 1
+		It took 15.113995 seconds to calculate query 2
+		It took 10.820438 seconds to calculate query 3
+
+	Fat executors 4 core/exec 10GB/exec:
+		It took 3.888077 seconds to load data
+		It took 20.529709 seconds to calculate query 1
+		It took 11.885789 seconds to calculate query 2
+		It took 10.020674 seconds to calculate query 3
+
+	Tradeoff 5 core/exec 8GB/exec:
+		It took 3.821157 seconds to load data
+		It took 18.760735 seconds to calculate query 1
+		It took 9.821598 seconds to calculate query 2
+		It took 8.421849 seconds to calculate query 3
+
+1 master 5 workers:
+	Tiny executors 1 core/exec 4GB/exec:
+		It took 5.353407 seconds to load data
+		It took 25.075815 seconds to calculate query 1
+		It took 13.375213 seconds to calculate query 2
+		It took 9.988647 seconds to calculate query 3
+
+
+	Fat executors 4 core/exec 10GB/exec:
+		It took 3.6935856 seconds to load data
+		It took 19.50061 seconds to calculate query 1
+		It took 10.389534 seconds to calculate query 2
+		It took 8.141996 seconds to calculate query 3
+
+	Tradeoff 5 core/exec 8GB/exec:
+		It took 3.944914 seconds to load data
+		It took 17.630896 seconds to calculate query 1
+		It took 9.095196 seconds to calculate query 2
+		It took 8.772186 seconds to calculate query 3
+
+	Tradeoff 5 core/exec 9GB/exec (test):
+		It took 3.8499286 seconds to load data
+		It took 18.187689 seconds to calculate query 1
+		It took 8.985035 seconds to calculate query 2
+		It took 7.693982 seconds to calculate query 3
+
+
+
