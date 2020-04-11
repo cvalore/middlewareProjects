@@ -22,14 +22,69 @@ public class NyTest {
             Logger.getLogger("org").setLevel(Level.OFF);
             Logger.getLogger("akka").setLevel(Level.OFF);
 
-            final String master = args.length > 0 ? args[0] : "local[8]"/*"spark://master:7077"*/;
-            final String filePath = args.length > 1 ? args[1] : "./";
+
+            /* TO RUN IN CLOUD
+            if(args.length < 1) {
+                  System.out.println("ERROR: insert file path and name");
+                  return;
+            }
+            String file = args[0];
+
+
 
             final SparkSession spark = SparkSession
                         .builder()
-                        .master(master)
                         .appName("NyTest")
                         .getOrCreate();
+
+             */
+
+            /*TO RUN IN LOCAL WITHOUT SPECIFYING PARAM
+            String file = "";
+            String master = "local[4]";
+            if(args.length >= 1) {
+                  master = args[0];
+                  file = args.length >= 2 ? args[1] : "";
+            }
+
+            if(file.equals("")) {
+                  System.out.println("ERROR: insert file path and name");
+                  return;
+            }
+
+            final SparkSession spark = SparkSession
+                        .builder()
+                        .appName("NyTest")
+                        .master(master)
+                        .getOrCreate();
+
+            */
+
+            /*TO LAUNCH SPECIFYING PARAM*/
+            String file = "";
+            String master = "local[4]";
+            String core_exec = "";
+            String mem_exec = "";
+            if(args.length >= 1) {
+                  master = args[0];
+                  file = args.length >= 2 ? args[1] : "";
+                  core_exec = args.length >= 3 ? args[2] : "";
+                  mem_exec = args.length >= 4 ? args[3] : "";
+            }
+
+            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
+                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
+                  return;
+            }
+
+            final SparkSession spark = SparkSession
+                        .builder()
+                        .appName("NyTest")
+                        .master(master)
+                        .config("spark.executor.cores", core_exec)
+                        .config("spark.executor.memory", mem_exec)
+                        .getOrCreate();
+
 
             //Load data
             long startLoading = System.nanoTime();
@@ -66,14 +121,14 @@ public class NyTest {
 
             final StructType schema = DataTypes.createStructType(schemaFields);
 
+            //path file will be like s3n://bucket_name//file_name.csv
             final Dataset<Row> unorderedDataSet = spark
                         .read()
                         .option("header", "true")
                         .option("dateFormat", "MM/dd/yyyy")
                         .option("delimiter", ",")
                         .schema(schema)
-                        //.csv(filePath + "files/prova_source.csv");
-                        .csv(filePath + "files/NYPD_Motor_Vehicle_Collisions.csv");
+                        .csv(file);
 
             final Dataset<Row> dataSet = unorderedDataSet
                         .orderBy("date");
