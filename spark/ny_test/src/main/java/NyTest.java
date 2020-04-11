@@ -23,7 +23,8 @@ public class NyTest {
             Logger.getLogger("akka").setLevel(Level.OFF);
 
 
-            /* TO RUN IN CLOUD
+            /* TO RUN IN CLOUD */
+            /*
             if(args.length < 1) {
                   System.out.println("ERROR: insert file path and name");
                   return;
@@ -38,8 +39,35 @@ public class NyTest {
                         .getOrCreate();
 
              */
+            /* TO RUN IN CLOUD SPECIFYING PARAM*/
 
-            /*TO RUN IN LOCAL WITHOUT SPECIFYING PARAM
+            String file = "";
+            String core_exec = "";
+            String mem_exec = "";
+            if(args.length >= 1) {
+                  file = args[0];
+                  core_exec = args.length >= 2 ? args[1] : "";
+                  mem_exec = args.length >= 3 ? args[2] : "";
+            }
+
+            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
+                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
+                  return;
+            }
+
+
+
+            final SparkSession spark = SparkSession
+                        .builder()
+                        .appName("NyTest")
+                        .config("spark.executor.cores", core_exec)
+                        .config("spark.executor.memory", mem_exec)
+                        .getOrCreate();
+
+
+
+            /*TO RUN IN LOCAL WITHOUT SPECIFYING PARAM*/
+            /*
             String file = "";
             String master = "local[4]";
             if(args.length >= 1) {
@@ -61,6 +89,7 @@ public class NyTest {
             */
 
             /*TO LAUNCH SPECIFYING PARAM*/
+            /*
             String file = "";
             String master = "local[4]";
             String core_exec = "";
@@ -84,7 +113,7 @@ public class NyTest {
                         .config("spark.executor.cores", core_exec)
                         .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
-
+            */
 
             //Load data
             long startLoading = System.nanoTime();

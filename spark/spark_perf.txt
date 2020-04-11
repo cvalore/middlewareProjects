@@ -1,0 +1,66 @@
+4 exec 2 cores/exec 1 GB/exec(... ./***.jar ***.csv 2 1g):
+	It took 9.414884 seconds to load data
+	It took 36.92092 seconds to calculate query 1
+	It took 22.682068 seconds to calculate query 2
+	It took 18.397198 seconds to calculate query 3
+
+3 exec 2 cores/exec 2GB/exec(... ./***.jar ***.csv 2 2g):
+	It took 4.779122 seconds to load data
+	It took 36.38269 seconds to calculate query 1
+	It took 22.595736 seconds to calculate query 2
+	It took 16.720104 seconds to calculate query 3
+
+1 exec 8 cores/exec 1GB/exec(... ./***.jar ***.csv 8 1g):
+	It took 7.6618667 seconds to load data
+	It took 26.42115 seconds to calculate query 1
+	It took 11.575268 seconds to calculate query 2
+	It took 12.8185005 seconds to calculate query 3
+
+1 exec 8 cores/exec 2GB/exec(... ./***.jar ***.csv 8 2g):
+	It took 2.766739 seconds to load data
+	It took 17.907776 seconds to calculate query 1
+	It took 11.263374 seconds to calculate query 2
+	It took 11.892748 seconds to calculate query 3
+
+1 exec 8 cores/exec 4GB/exec(... ./***.jar ***.csv 8 4g):
+	It took 2.7444944 seconds to load data
+	It took 18.164528 seconds to calculate query 1
+	It took 11.448474 seconds to calculate query 2
+	It took 12.269835 seconds to calculate query 3
+
+1 exec 8 cores/exec 6GB/exec(... ./***.jar ***.csv 8 6g):
+	It took 2.8528283 seconds to load data
+	It took 19.818047 seconds to calculate query 1
+	It took 12.170275 seconds to calculate query 2
+	It took 12.54224 seconds to calculate query 3
+
+1 exec 4 cores/exec 4GB/exec(... ./***.jar ***.csv 4 4g):
+	It took 2.718965 seconds to load data
+	It took 18.339083 seconds to calculate query 1
+	It took 12.70678 seconds to calculate query 2
+	It took 12.466381 seconds to calculate query 3
+
+2 exec 4 cores/exec 2GB/exec(... ./***.jar ***.csv 4 2g):
+	It took 3.419363 seconds to load data
+	It took 23.905651 seconds to calculate query 1
+	It took 16.856373 seconds to calculate query 2
+	It took 15.180354 seconds to calculate query 3
+
+1 exec 5 cores/exec 1GB/exec(... ./***.jar ***.csv 5 1g):
+	It took 3.019544 seconds to load data
+	It took 18.623209 seconds to calculate query 1
+	It took 12.163582 seconds to calculate query 2
+	It took 12.502603 seconds to calculate query 3
+	
+1 exec 5 cores/exec 2GB/exec(... ./***.jar ***.csv 5 2g):
+	It took 3.0467796 seconds to load data
+	It took 17.788498 seconds to calculate query 1
+	It took 11.455591 seconds to calculate query 2
+	It took 11.263579 seconds to calculate query 3
+
+1 exec 5 cores/exec 3GB/exec(... ./***.jar ***.csv 5 3g):
+	It took 2.9135058 seconds to load data
+	It took 18.770779 seconds to calculate query 1
+	It took 12.1036005 seconds to calculate query 2
+	It took 12.40087 seconds to calculate query 3
+	
