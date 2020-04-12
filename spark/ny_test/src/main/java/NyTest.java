@@ -13,7 +13,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static org.apache.spark.sql.functions.*;
@@ -21,6 +20,7 @@ import static org.apache.spark.sql.functions.*;
 public class NyTest {
 
       private static AtomicReferenceArray<Integer> lethalAccidents;
+      private static List<SupportClass3> supportClasses3;
 
       public static void main(String[] args) {
             Logger.getLogger("org").setLevel(Level.OFF);
@@ -125,14 +125,15 @@ public class NyTest {
                                     col("n_motor_killed")))))
                         .filter(col("sum_death").gt(0))
                         .drop("n_person_killed", "n_pedestrian_killed", "n_cyclist_killed", "n_motor_killed");
-                        ;
+
             lethalAccidentsSet.persist();
 
             int daysNo = (int)ChronoUnit.DAYS.between(globalMinDate.toLocalDate(), globalMaxDate.toLocalDate()) + 1;
-            int weeksNo = daysNo / 7;
+            int tempWeekNo = daysNo / 7;
             if((daysNo != 0) && ((daysNo % 7) != 0)) {
-                  weeksNo ++;
+                  tempWeekNo ++;
             }
+            final int weeksNo = tempWeekNo;
 
             lethalAccidents = new AtomicReferenceArray<>(weeksNo);
             for(int i = 0; i < weeksNo; i++) {
@@ -154,7 +155,7 @@ public class NyTest {
                   lethalAccidents.getAndAccumulate(index, 1, Integer::sum);
             });
 
-            System.out.printf("\nQUERY 1:\n");
+            System.out.print("\nQUERY 1:\n");
             for(int i = 0; i < weeksNo; i++) {
                   System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents.get(i), "lethal accidents");
 
@@ -225,47 +226,44 @@ public class NyTest {
 
             List<SupportClass2> supportClasses2 = Collections.synchronizedList(new ArrayList<>());
 
-            int len = groupedRows.size();
+            //int len = groupedRows.size();
             int rowSize = groupedRows.size() > 0 ? groupedRows.get(0).size() : 0;
 
-            for(int i = 0; i < len; i++) {
+            for (Row r : groupedRows) {
                   List<SupportClass2> partialSupport = Collections.synchronizedList(new ArrayList<>());
 
-                  Row row = groupedRows.get(i);
-                  for(int j = 0; j < rowSize-2; j++) {
-                        if(row.getString(j) != null && findInListOfSupport(partialSupport, row.getString(j)) == null) {
+                  for (int j = 0; j < rowSize - 2; j++) {
+                        if (r.getString(j) != null && findInListOfSupport(partialSupport, r.getString(j)) == null) {
                               SupportClass2 temp = new SupportClass2(
-                                          row.getString(j), row.getLong(rowSize-2), 0L);
-                              if(row.get(rowSize-1) != null)
-                                    temp.setLethals(row.getLong(rowSize-1));
+                                          r.getString(j), r.getLong(rowSize - 2), 0L);
+                              if (r.get(rowSize - 1) != null)
+                                    temp.setLethals(r.getLong(rowSize - 1));
                               partialSupport.add(temp);
                         }
                   }
-                  int size = partialSupport.size();
-                  for(int k = 0; k < size; k++) {
-                        SupportClass2 supportFound = findInListOfSupport(supportClasses2, partialSupport.get(k).getFactor());
-                        if(supportFound == null) {
-                              SupportClass2 temp = new SupportClass2(partialSupport.get(k).getFactor(), partialSupport.get(k).getAccidents(), partialSupport.get(k).getLethals());
+                  //int size = partialSupport.size();
+                  for (SupportClass2 s2 : partialSupport) {
+                        SupportClass2 supportFound = findInListOfSupport(supportClasses2, s2.getFactor());
+                        if (supportFound == null) {
+                              SupportClass2 temp = new SupportClass2(s2.getFactor(), s2.getAccidents(), s2.getLethals());
                               supportClasses2.add(temp);
-                        }
-                        else {
-                              supportFound.setAccidents(supportFound.getAccidents() + partialSupport.get(k).getAccidents());
-                              supportFound.setLethals(supportFound.getLethals()+ partialSupport.get(k).getLethals());
+                        } else {
+                              supportFound.setAccidents(supportFound.getAccidents() + s2.getAccidents());
+                              supportFound.setLethals(supportFound.getLethals() + s2.getLethals());
                         }
                   }
             }
 
-            int facLen = supportClasses2.size();
-            System.out.printf("\nQUERY 2:\n");
+            //int facLen = supportClasses2.size();
+            System.out.print("\nQUERY 2:\n");
             System.out.printf("\t%-60s%-20s%-20s%s%n", "FACTOR", "N_ACCIDENTS", "N_DEATHS", "PERC_N_DEATHS");
 
-            double perc = 0f;
-            for(int i = 0; i < facLen; i++) {
-                  perc = supportClasses2.get(i).getAccidents() != 0 ?
-                              ((supportClasses2.get(i).getLethals()*100.0f)/supportClasses2.get(i).getAccidents()) :
+            for (SupportClass2 s : supportClasses2) {
+                  double perc = s.getAccidents() != 0 ?
+                              ((s.getLethals() * 100.0f) / s.getAccidents()) :
                               0;
 
-                  System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", supportClasses2.get(i).getFactor(), supportClasses2.get(i).getAccidents(), supportClasses2.get(i).getLethals(), perc);
+                  System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", s.getFactor(), s.getAccidents(), s.getLethals(), perc);
             }
 
             long query2Time = System.nanoTime() - startQuery2Time;
@@ -284,6 +282,7 @@ public class NyTest {
                         .drop("count")
                         .orderBy("borough", "date")
                         ;
+            boroughSet.cache();
 
             final Dataset<Row> deathBorough = lethalAccidentsSet
                         .select("date", "borough")
@@ -313,70 +312,55 @@ public class NyTest {
                         .orderBy("borough")
                         ;
 
-            List<SupportClass3a> supportClasses3a = Collections.synchronizedList(new ArrayList<>());
+            supportClasses3 = Collections.synchronizedList(new ArrayList<>());
 
-            List<Row> boroughDatesData = boroughsNameSet.toJavaRDD().collect();
-            for(int i = 0; i < boroughDatesData.size(); i++) {
-                  int indexToAdd = i == 0 ?
-                              (int) boroughDatesData.get(i).getLong(1) :
-                              (int) boroughDatesData.get(i).getLong(1) + supportClasses3a.get(i-1).getIndex();
-                  SupportClass3a temp = new SupportClass3a(boroughDatesData.get(i).getString(0), indexToAdd);
-                  supportClasses3a.add(temp);
-            }
-
-            List<SupportClass3b> supportClasses3b = Collections.synchronizedList(new ArrayList<>());
-
-            //initialization
-            for(int i = 0; i < supportClasses3a.size(); i++) {
+            //init
+            boroughsNameSet.foreach((ForeachFunction<Row>) row -> {
                   Integer[] localArray = new Integer[weeksNo];
-                  for(int j = 0; j < weeksNo; j++) {
+                  for (int j = 0; j < weeksNo; j++) {
                         localArray[j] = 0;
                   }
 
-                  SupportClass3b temp = new SupportClass3b(new AtomicReferenceArray<>(localArray), 0);
-                  supportClasses3b.add(temp);
-            }
+                  SupportClass3 temp = new SupportClass3();
+                  temp.setBorough(row.getString(0));
+                  temp.setAccidentsPerBoroughPerWeek(new AtomicReferenceArray<>(localArray));
+                  temp.setLethalsPerBoroughPerWeek(0);
+                  supportClasses3.add(temp);
+            });
 
-
-            List<Row> boroughData = accidentsAndDeathPerBorough.toJavaRDD().collect();
-            for(int i = 0; i < supportClasses3a.size(); i++) {
-                  int starting = (i == 0) ? 0 : supportClasses3a.get(i-1).getIndex();
-                  for(int j = starting; j < supportClasses3a.get(i).getIndex(); j++) {
-                        //find the index to update
-                        int index = (int)(ChronoUnit.DAYS.between(
-                                    globalMinDate.toLocalDate(),
-                                    boroughData.get(j).getDate(1).toLocalDate()))
-                                    + 1;
-                        if(index != 0) {
-                              if(index % 7 == 0) {
-                                    index = (index/7) -1;
-                              }
-                              else {
-                                    index = index/7;
-                              }
+            accidentsAndDeathPerBorough.foreach((ForeachFunction<Row>) row -> {
+                  int index = (int)(ChronoUnit.DAYS.between(
+                              globalMinDate.toLocalDate(), row.getDate(1).toLocalDate())) + 1;
+                  if(index != 0) {
+                        if(index % 7 == 0) {
+                              index = (index/7) -1;
                         }
-
-                        supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().getAndAccumulate(index, (int)boroughData.get(j).getLong(2), Integer::sum);
-                        if(boroughData.get(j).get(3) != null) {
-                              int prevLeth = supportClasses3b.get(i).getLethalsPerBoroughPerWeek();
-                              supportClasses3b.get(i).setLethalsPerBoroughPerWeek(prevLeth + (int)boroughData.get(j).getLong(3));
+                        else {
+                              index = index/7;
                         }
                   }
-            }
 
-            System.out.printf("\nQUERY 3:\n");
+                  SupportClass3 toMod = findSupportClass3(row.getString(0));
+                  if(toMod != null) {
+                        toMod.getAccidentsPerBoroughPerWeek().getAndAccumulate(index, (int) row.getLong(2), Integer::sum);
+                        if(row.get(3) != null) {
+                              updateLethalAccidents(toMod, (int)row.getLong(3));
+                        }
+                  }
+            });
 
-            for(int i = 0; i < supportClasses3a.size(); i++) {
-                  System.out.printf("\tBOROUGH: %s\n", supportClasses3a.get(i).getBorough());
+            System.out.print("\nQUERY 3:\n");
+            for (SupportClass3 s : supportClasses3) {
+                  System.out.printf("\tBOROUGH: %s\n", s.getBorough());
 
-                  for(int j = 0; j < supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length(); j++) {
-                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().get(j) , "accidents");
+                  for (int j = 0; j < s.getAccidentsPerBoroughPerWeek().length(); j++) {
+                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, s.getAccidentsPerBoroughPerWeek().get(j), "accidents");
                   }
 
                   System.out.printf("\t\tAvg lethal accidents/week: %.2f%% (%d lethal accidents over %d weeks)\n\n",
-                              (100.0f * supportClasses3b.get(i).getLethalsPerBoroughPerWeek())/supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length(),
-                              supportClasses3b.get(i).getLethalsPerBoroughPerWeek(),
-                              supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().length());
+                              (100.0f * s.getLethalsPerBoroughPerWeek()) / s.getAccidentsPerBoroughPerWeek().length(),
+                              s.getLethalsPerBoroughPerWeek(),
+                              s.getAccidentsPerBoroughPerWeek().length());
             }
 
             long query3Time = System.nanoTime() - startQuery3Time;
@@ -393,7 +377,22 @@ public class NyTest {
             spark.close();*/
       }
 
-      private static SupportClass2 findInListOfSupport(List<SupportClass2> list, String factor) {
+      private static synchronized void updateLethalAccidents(SupportClass3 toMod, int newVal) {
+            int prev = toMod.getLethalsPerBoroughPerWeek();
+            toMod.setLethalsPerBoroughPerWeek(prev + newVal);
+      }
+
+
+      private static synchronized SupportClass3 findSupportClass3(String name) {
+            for(SupportClass3 s : supportClasses3) {
+                  if(s.getBorough().equals(name)) {
+                        return s;
+                  }
+            }
+            return null;
+      }
+
+      private static synchronized SupportClass2 findInListOfSupport(List<SupportClass2> list, String factor) {
             for(SupportClass2 s : list) {
                   if(s.getFactor().equals(factor)) {
                         return s;
