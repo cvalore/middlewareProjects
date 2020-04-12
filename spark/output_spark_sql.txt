@@ -1,4 +1,3 @@
-
 QUERY 1:
 	Week1    3         lethal accidents
 	Week2    6         lethal accidents
@@ -239,7 +238,7 @@ QUERY 1:
 	1126 total lethal accidents over 236 weeks, avg = 477,12%
 
 QUERY 2:
-	FACTOR                                                      N_ACCIDENTS         N_DEATHS            PERC
+	FACTOR                                                      N_ACCIDENTS         N_DEATHS            PERC_N_DEATHS
 	Alcohol Involvement                                         7807                69                  0,88%
 	Failure to Keep Right                                       2021                0                   0,00%
 	Pedestrian/Bicyclist/Other Pedestrian Error/Confusion       776                 15                  1,93%
@@ -1486,7 +1485,7 @@ QUERY 3:
 		Avg lethal accidents/week: 18,64% (44 lethal accidents over 236 weeks)
 
 
-It took 2,431370 seconds to load data
-It took 17,032766 seconds to calculate query 1
-It took 10,993853 seconds to calculate query 2
-It took 12,833854 seconds to calculate query 3
+It took 2.6156106 seconds to load data (and order it)
+It took 12.120597 seconds to calculate query 1
+It took 11.345519 seconds to calculate query 2
+It took 11.272644 seconds to calculate query 3

@@ -1,5 +1,6 @@
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.function.ForeachFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -18,56 +19,15 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import static org.apache.spark.sql.functions.*;
 
 public class NyTest {
+
+      private static AtomicReferenceArray<Integer> lethalAccidents;
+
       public static void main(String[] args) {
             Logger.getLogger("org").setLevel(Level.OFF);
             Logger.getLogger("akka").setLevel(Level.OFF);
 
-
-            /* TO RUN IN CLOUD */
-            /*
-            if(args.length < 1) {
-                  System.out.println("ERROR: insert file path and name");
-                  return;
-            }
-            String file = args[0];
-
-
-
-            final SparkSession spark = SparkSession
-                        .builder()
-                        .appName("NyTest")
-                        .getOrCreate();
-
-             */
-            /* TO RUN IN CLOUD SPECIFYING PARAM*/
-
-            String file = "";
-            String core_exec = "";
-            String mem_exec = "";
-            if(args.length >= 1) {
-                  file = args[0];
-                  core_exec = args.length >= 2 ? args[1] : "";
-                  mem_exec = args.length >= 3 ? args[2] : "";
-            }
-
-            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
-                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
-                  return;
-            }
-
-
-
-            final SparkSession spark = SparkSession
-                        .builder()
-                        .appName("NyTest")
-                        .config("spark.executor.cores", core_exec)
-                        .config("spark.executor.memory", mem_exec)
-                        .getOrCreate();
-
-
-
             /*TO RUN IN LOCAL WITHOUT SPECIFYING PARAM*/
-            /*
+
             String file = "";
             String master = "local[4]";
             if(args.length >= 1) {
@@ -85,35 +45,6 @@ public class NyTest {
                         .appName("NyTest")
                         .master(master)
                         .getOrCreate();
-
-            */
-
-            /*TO LAUNCH SPECIFYING PARAM*/
-            /*
-            String file = "";
-            String master = "local[4]";
-            String core_exec = "";
-            String mem_exec = "";
-            if(args.length >= 1) {
-                  master = args[0];
-                  file = args.length >= 2 ? args[1] : "";
-                  core_exec = args.length >= 3 ? args[2] : "";
-                  mem_exec = args.length >= 4 ? args[3] : "";
-            }
-
-            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
-                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
-                  return;
-            }
-
-            final SparkSession spark = SparkSession
-                        .builder()
-                        .appName("NyTest")
-                        .master(master)
-                        .config("spark.executor.cores", core_exec)
-                        .config("spark.executor.memory", mem_exec)
-                        .getOrCreate();
-            */
 
             //Load data
             long startLoading = System.nanoTime();
@@ -151,45 +82,13 @@ public class NyTest {
             final StructType schema = DataTypes.createStructType(schemaFields);
 
             //path file will be like s3n://bucket_name//file_name.csv
-            final Dataset<Row> unorderedDataSet = spark
+            final Dataset<Row> dataSet = spark
                         .read()
                         .option("header", "true")
                         .option("dateFormat", "MM/dd/yyyy")
                         .option("delimiter", ",")
                         .schema(schema)
-                        .csv(file);
-
-            final Dataset<Row> dataSet = unorderedDataSet
-                        .orderBy("date");
-
-            dataSet.persist();
-
-            long loadingTime = System.nanoTime() - startLoading;
-            //end of loading
-
-
-            //query1
-            long startQuery1Time = System.nanoTime();
-
-            final Date globalMinDate = dataSet.first().getDate(0);
-
-            final Dataset<Row> descendantDataSet = dataSet
-                        .orderBy(col("date").desc())
-                        .withColumn("date_diff",
-                                    datediff(col("date"), lit(globalMinDate)).plus(1))
-                        .select("date",
-                                    "borough",
-                                    "n_person_killed",
-                                    "n_pedestrian_killed",
-                                    "n_cyclist_killed",
-                                    "n_motor_killed",
-                                    "date_diff")
-                        ;
-
-            //may be useless
-            final Date globalMaxDate = descendantDataSet.first().getDate(0);
-
-            final Dataset<Row> lethalAccidentsSet = dataSet
+                        .csv(file)
                         .select("date",
                                     "borough",
                                     "n_person_killed",
@@ -201,37 +100,49 @@ public class NyTest {
                                     "factor3",
                                     "factor4",
                                     "factor5")
+                        .orderBy("date");
+
+            dataSet.persist();
+
+            long loadingTime = System.nanoTime() - startLoading;
+            //end of loading
+
+            //query1
+            long startQuery1Time = System.nanoTime();
+
+            final Date globalMinDate = dataSet.first().getDate(0);
+            final Date globalMaxDate = dataSet
+                        .select("date")
+                        .agg(max("date"))
+                        .first()
+                        .getDate(0);
+
+            final Dataset<Row> lethalAccidentsSet = dataSet
                         .withColumn("sum_death",
                                     col("n_person_killed").plus(
                                     col("n_pedestrian_killed").plus(
                                     col("n_cyclist_killed").plus(
                                     col("n_motor_killed")))))
-                        .withColumn("lethal_flag",
-                                    col("n_person_killed").plus(
-                                    col("n_pedestrian_killed").plus(
-                                    col("n_cyclist_killed").plus(
-                                    col("n_motor_killed")))).gt(0))
-                        .filter(col("lethal_flag").equalTo(true))
+                        .filter(col("sum_death").gt(0))
+                        .drop("n_person_killed", "n_pedestrian_killed", "n_cyclist_killed", "n_motor_killed");
                         ;
             lethalAccidentsSet.persist();
 
-            int daysNo = descendantDataSet.first().getInt(6);
+            int daysNo = (int)ChronoUnit.DAYS.between(globalMinDate.toLocalDate(), globalMaxDate.toLocalDate()) + 1;
             int weeksNo = daysNo / 7;
             if((daysNo != 0) && ((daysNo % 7) != 0)) {
                   weeksNo ++;
             }
 
-            AtomicReferenceArray<Integer> lethalAccidents = new AtomicReferenceArray<>(weeksNo);
-            //int [] lethalAccidents = new int[weeksNo];
+            lethalAccidents = new AtomicReferenceArray<>(weeksNo);
             for(int i = 0; i < weeksNo; i++) {
-                  //lethalAccidents[i] = 0;
                   lethalAccidents.set(i, 0);
             }
             int totalLethalAccidents = 0;
 
-            List<Row> lethalAccidentsRow = lethalAccidentsSet.toJavaRDD().collect();
-            for(Row r : lethalAccidentsRow) {
-                  int index = (int)(ChronoUnit.DAYS.between(globalMinDate.toLocalDate(), r.getDate(0).toLocalDate())) + 1;
+            lethalAccidentsSet.foreach((ForeachFunction<Row>) row -> {
+                  int index = (int)(ChronoUnit.DAYS.between
+                              (globalMinDate.toLocalDate(), row.getDate(0).toLocalDate()))+ 1;
                   if(index != 0) {
                         if(index % 7 == 0) {
                               index = (index/7) -1;
@@ -240,17 +151,13 @@ public class NyTest {
                               index = index/7;
                         }
                   }
-                  //lethalAccidents[index] ++;
                   lethalAccidents.getAndAccumulate(index, 1, Integer::sum);
-                  //lethalAccidents.set(index, );
-            }
+            });
 
             System.out.printf("\nQUERY 1:\n");
             for(int i = 0; i < weeksNo; i++) {
-                  //System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents[i], "lethal accidents");
                   System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents.get(i), "lethal accidents");
 
-                  //totalLethalAccidents += lethalAccidents[i];
                   totalLethalAccidents += lethalAccidents.get(i);
             }
             System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
@@ -273,11 +180,11 @@ public class NyTest {
 
             final Dataset<Row> deathsPerFacSet = accidentsCountPerFacSet
                         .join(lethalAccidentsSet,
-                              lethalAccidentsSet.col("factor1").eqNullSafe(accidentsCountPerFacSet.col("factor1"))
-                                    .and(lethalAccidentsSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
-                                    .and(lethalAccidentsSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
-                                    .and(lethalAccidentsSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
-                                    .and(lethalAccidentsSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5"))))
+                                    lethalAccidentsSet.col("factor1").eqNullSafe(accidentsCountPerFacSet.col("factor1"))
+                                                .and(lethalAccidentsSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
+                                                .and(lethalAccidentsSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
+                                                .and(lethalAccidentsSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
+                                                .and(lethalAccidentsSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5"))))
                         .select(lethalAccidentsSet.col("factor1"),
                                     lethalAccidentsSet.col("factor2"),
                                     lethalAccidentsSet.col("factor3"),
@@ -299,10 +206,10 @@ public class NyTest {
             final Dataset<Row> joined = accidentsCountPerFacSet
                         .join(deathsPerFacSet,
                                     deathsPerFacSet.col("factor1").eqNullSafe(accidentsCountPerFacSet.col("factor1"))
-                                    .and(deathsPerFacSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
-                                    .and(deathsPerFacSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
-                                    .and(deathsPerFacSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
-                                    .and(deathsPerFacSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5")))
+                                                .and(deathsPerFacSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
+                                                .and(deathsPerFacSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
+                                                .and(deathsPerFacSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
+                                                .and(deathsPerFacSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5")))
                                     , "full_outer")
                         .select(accidentsCountPerFacSet.col("factor1"),
                                     accidentsCountPerFacSet.col("factor2"),
@@ -316,31 +223,17 @@ public class NyTest {
 
             List<Row> groupedRows = joined.toJavaRDD().collect();
 
-            /*List<String> factors = new ArrayList<>();
-            List<Long> accidents = new ArrayList<>();
-            List<Long> lethals = new ArrayList<>();*/
-
             List<SupportClass2> supportClasses2 = Collections.synchronizedList(new ArrayList<>());
 
             int len = groupedRows.size();
             int rowSize = groupedRows.size() > 0 ? groupedRows.get(0).size() : 0;
 
             for(int i = 0; i < len; i++) {
-                  /*List<String> partialF = new ArrayList<>();
-                  List<Long> partialA = new ArrayList<>();
-                  List<Long> partialL = new ArrayList<>();*/
                   List<SupportClass2> partialSupport = Collections.synchronizedList(new ArrayList<>());
 
                   Row row = groupedRows.get(i);
                   for(int j = 0; j < rowSize-2; j++) {
-                        //if(row.getString(j) != null && !partialF.contains(row.getString(j))) {
                         if(row.getString(j) != null && findInListOfSupport(partialSupport, row.getString(j)) == null) {
-                              /*partialF.add(row.getString(j));
-                              partialA.add(row.getLong(rowSize-2));
-                              if(row.get(rowSize-1) != null)
-                                    partialL.add(row.getLong(rowSize-1));
-                              else
-                                    partialL.add(0L); //done to respect the size for each list*/
                               SupportClass2 temp = new SupportClass2(
                                           row.getString(j), row.getLong(rowSize-2), 0L);
                               if(row.get(rowSize-1) != null)
@@ -350,21 +243,12 @@ public class NyTest {
                   }
                   int size = partialSupport.size();
                   for(int k = 0; k < size; k++) {
-                        //if(!factors.contains(partialF.get(k))) {
                         SupportClass2 supportFound = findInListOfSupport(supportClasses2, partialSupport.get(k).getFactor());
                         if(supportFound == null) {
-                              /*factors.add(partialF.get(k));
-                              accidents.add(partialA.get(k));
-                              lethals.add(partialL.get(k));*/
                               SupportClass2 temp = new SupportClass2(partialSupport.get(k).getFactor(), partialSupport.get(k).getAccidents(), partialSupport.get(k).getLethals());
                               supportClasses2.add(temp);
                         }
                         else {
-                              /*int index = factors.indexOf(partialF.get(k));
-                              long prevAcc = accidents.get(index);
-                              long prevLeth = lethals.get(index);
-                              accidents.set(index, prevAcc + partialA.get(k));
-                              lethals.set(index, prevLeth + partialL.get(k));*/
                               supportFound.setAccidents(supportFound.getAccidents() + partialSupport.get(k).getAccidents());
                               supportFound.setLethals(supportFound.getLethals()+ partialSupport.get(k).getLethals());
                         }
@@ -377,10 +261,9 @@ public class NyTest {
 
             double perc = 0f;
             for(int i = 0; i < facLen; i++) {
-                  //perc = accidents.get(i) != 0 ? ((lethals.get(i)*100.0f)/accidents.get(i)) : 0;
                   perc = supportClasses2.get(i).getAccidents() != 0 ?
-                        ((supportClasses2.get(i).getLethals()*100.0f)/supportClasses2.get(i).getAccidents()) :
-                        0;
+                              ((supportClasses2.get(i).getLethals()*100.0f)/supportClasses2.get(i).getAccidents()) :
+                              0;
 
                   System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", supportClasses2.get(i).getFactor(), supportClasses2.get(i).getAccidents(), supportClasses2.get(i).getLethals(), perc);
             }
@@ -415,8 +298,8 @@ public class NyTest {
             final Dataset<Row> accidentsAndDeathPerBorough = boroughSet
                         .join(deathBorough,
                                     deathBorough.col("borough").eqNullSafe(boroughSet.col("borough"))
-                                          .and(deathBorough.col("date").eqNullSafe(boroughSet.col("date")))
-                              ,"full_outer")
+                                                .and(deathBorough.col("date").eqNullSafe(boroughSet.col("date")))
+                                    ,"full_outer")
                         .select(boroughSet.col("borough"),
                                     boroughSet.col("date"),
                                     boroughSet.col("count_accidents"),
@@ -430,19 +313,10 @@ public class NyTest {
                         .orderBy("borough")
                         ;
 
-            /*List<String> boroughs = new ArrayList<>();
-            List<Integer> indexes = new ArrayList<>();*/
             List<SupportClass3a> supportClasses3a = Collections.synchronizedList(new ArrayList<>());
 
             List<Row> boroughDatesData = boroughsNameSet.toJavaRDD().collect();
             for(int i = 0; i < boroughDatesData.size(); i++) {
-                  /*boroughs.add(boroughDatesData.get(i).getString(0));
-                  if(i == 0) {
-                        indexes.add((int) boroughDatesData.get(i).getLong(1));
-                  }
-                  else {
-                        indexes.add((int) boroughDatesData.get(i).getLong(1) + indexes.get(i-1));
-                  }*/
                   int indexToAdd = i == 0 ?
                               (int) boroughDatesData.get(i).getLong(1) :
                               (int) boroughDatesData.get(i).getLong(1) + supportClasses3a.get(i-1).getIndex();
@@ -450,21 +324,15 @@ public class NyTest {
                   supportClasses3a.add(temp);
             }
 
-            /*List<int[]> accidentsPerBoroughPerWeek = new ArrayList<>();
-            List<Integer> lethalsPerBoroughPerWeek = new ArrayList<>();
-            */
             List<SupportClass3b> supportClasses3b = Collections.synchronizedList(new ArrayList<>());
 
             //initialization
             for(int i = 0; i < supportClasses3a.size(); i++) {
-                  //int[] localArray = new int[weeksNo];
                   Integer[] localArray = new Integer[weeksNo];
                   for(int j = 0; j < weeksNo; j++) {
                         localArray[j] = 0;
                   }
 
-                  /*accidentsPerBoroughPerWeek.add(localArray);
-                  lethalsPerBoroughPerWeek.add(0);*/
                   SupportClass3b temp = new SupportClass3b(new AtomicReferenceArray<>(localArray), 0);
                   supportClasses3b.add(temp);
             }
@@ -472,14 +340,12 @@ public class NyTest {
 
             List<Row> boroughData = accidentsAndDeathPerBorough.toJavaRDD().collect();
             for(int i = 0; i < supportClasses3a.size(); i++) {
-                  /*int starting = (i == 0) ? 0 : indexes.get(i-1);
-                  for(int j = starting; j < indexes.get(i); j++) {*/
                   int starting = (i == 0) ? 0 : supportClasses3a.get(i-1).getIndex();
                   for(int j = starting; j < supportClasses3a.get(i).getIndex(); j++) {
                         //find the index to update
                         int index = (int)(ChronoUnit.DAYS.between(
-                                          globalMinDate.toLocalDate(),
-                                          boroughData.get(j).getDate(1).toLocalDate()))
+                                    globalMinDate.toLocalDate(),
+                                    boroughData.get(j).getDate(1).toLocalDate()))
                                     + 1;
                         if(index != 0) {
                               if(index % 7 == 0) {
@@ -490,12 +356,6 @@ public class NyTest {
                               }
                         }
 
-                        /*accidentsPerBoroughPerWeek.get(i)[index] += (int)boroughData.get(j).getLong(2);
-
-                        if(boroughData.get(j).get(3) != null) {
-                              int prevLeth = lethalsPerBoroughPerWeek.get(i);
-                              lethalsPerBoroughPerWeek.set(i, prevLeth + (int)boroughData.get(j).getLong(3));
-                        }*/
                         supportClasses3b.get(i).getAccidentsPerBoroughPerWeek().getAndAccumulate(index, (int)boroughData.get(j).getLong(2), Integer::sum);
                         if(boroughData.get(j).get(3) != null) {
                               int prevLeth = supportClasses3b.get(i).getLethalsPerBoroughPerWeek();
@@ -523,14 +383,14 @@ public class NyTest {
 
             //end of query3
 
-            System.out.println("\nIt took " + loadingTime/1000000000.0f + " seconds to load data");
+            System.out.println("\nIt took " + loadingTime/1000000000.0f + " seconds to load data (and order it)");
             System.out.println("It took " + query1Time/1000000000.0f + " seconds to calculate query 1");
             System.out.println("It took " + query2Time/1000000000.0f + " seconds to calculate query 2");
             System.out.println("It took " + query3Time/1000000000.0f + " seconds to calculate query 3");
 
-            Scanner scanner = new Scanner(System.in);
+            /*Scanner scanner = new Scanner(System.in);
             scanner.nextLine();
-            spark.close();
+            spark.close();*/
       }
 
       private static SupportClass2 findInListOfSupport(List<SupportClass2> list, String factor) {
