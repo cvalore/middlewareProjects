@@ -19,8 +19,6 @@ import static org.apache.spark.sql.functions.*;
 
 public class NyTest {
 
-      //private static List<SupportClass3> supportClasses3;
-
       public static void main(String[] args) {
             Logger.getLogger("org").setLevel(Level.OFF);
             Logger.getLogger("akka").setLevel(Level.OFF);
@@ -306,23 +304,7 @@ public class NyTest {
                         .orderBy("borough", "date")
                         ;
 
-            final Dataset<Row> boroughsNameSet = boroughSet
-                        .groupBy("borough")
-                        .agg(count("borough"))
-                        .orderBy("borough")
-                        ;
-
-            List<SupportClass3> supportClasses3 = Collections.synchronizedList(new ArrayList<>());
-
-            //init, useless to JavaRDD ?
-            //(not done in a parallel way)
-            boroughsNameSet.toJavaRDD().collect().forEach(row -> {
-                  supportClasses3.add(
-                              new SupportClass3(
-                                          row.getString(0),
-                                          new int[weeksNo],
-                                          0));
-            });
+            Map<String, SupportClass3> supportClasses3 = Collections.synchronizedMap(new HashMap<>());
 
             JavaRDD<Tuple4<String, Integer, Integer, Integer>> perBorough =
                         accidentsAndDeathPerBorough.toJavaRDD().map(row -> {
@@ -344,28 +326,27 @@ public class NyTest {
 
             //actually update (not done in a parallel way)
             perBorough.collect().forEach(t -> {
-                  for(SupportClass3 s : supportClasses3) {
-                        if(s.getBorough().equals(t._1())) {
-                              s.getAccidentsPerBoroughPerWeek()[t._2()] += t._3();
-                              int prev = s.getLethalsPerBoroughPerWeek();
-                              s.setLethalsPerBoroughPerWeek(prev + t._4());
-                              break;
-                        }
-                  }
+                  supportClasses3.computeIfAbsent(t._1(), v -> new SupportClass3(new int[weeksNo], 0));
+                  supportClasses3.computeIfPresent(t._1(), (sf, vf) -> {
+                        vf.addAccidentsAt(t._2(), t._3());
+                        vf.addLethals(t._4());
+                        return vf;
+                  });
             });
 
             System.out.print("\nQUERY 3:\n");
-            for (SupportClass3 s : supportClasses3) {
-                  System.out.printf("\tBOROUGH: %s\n", s.getBorough());
+            for (String s : supportClasses3.keySet()) {
+                  SupportClass3 elem = supportClasses3.get(s);
+                  System.out.printf("\tBOROUGH: %s\n", s);
 
-                  for (int j = 0; j < s.getAccidentsPerBoroughPerWeek().length; j++) {
-                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, s.getAccidentsPerBoroughPerWeek()[j], "accidents");
+                  for (int j = 0; j < elem.getAccidentsPerBoroughPerWeek().length; j++) {
+                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, elem.getAccidentsPerBoroughPerWeek()[j], "accidents");
                   }
 
                   System.out.printf("\t\tAvg lethal accidents/week: %.2f%% (%d lethal accidents over %d weeks)\n\n",
-                              (100.0f * s.getLethalsPerBoroughPerWeek()) / s.getAccidentsPerBoroughPerWeek().length,
-                              s.getLethalsPerBoroughPerWeek(),
-                              s.getAccidentsPerBoroughPerWeek().length);
+                              (100.0f * elem.getLethalsPerBoroughPerWeek()) / elem.getAccidentsPerBoroughPerWeek().length,
+                              elem.getLethalsPerBoroughPerWeek(),
+                              elem.getAccidentsPerBoroughPerWeek().length);
             }
 
             long query3Time = System.nanoTime() - startQuery3Time;

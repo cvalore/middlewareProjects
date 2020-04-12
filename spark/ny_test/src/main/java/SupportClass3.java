@@ -1,29 +1,13 @@
-import java.util.concurrent.atomic.AtomicReferenceArray;
-
 public class SupportClass3 {
-      private String borough;
       private int [] accidentsPerBoroughPerWeek;
       private Integer lethalsPerBoroughPerWeek;
 
       public SupportClass3() {
       }
 
-      public SupportClass3(String borough) {
-            this.borough = borough;
-      }
-
-      public SupportClass3(String borough, int[] accidentsPerBoroughPerWeek, Integer lethalsPerBoroughPerWeek) {
-            this.borough = borough;
+      public SupportClass3(int[] accidentsPerBoroughPerWeek, Integer lethalsPerBoroughPerWeek) {
             this.accidentsPerBoroughPerWeek = accidentsPerBoroughPerWeek;
             this.lethalsPerBoroughPerWeek = lethalsPerBoroughPerWeek;
-      }
-
-      public String getBorough() {
-            return borough;
-      }
-
-      public void setBorough(String borough) {
-            this.borough = borough;
       }
 
       public int[] getAccidentsPerBoroughPerWeek() {
@@ -40,5 +24,13 @@ public class SupportClass3 {
 
       public void setLethalsPerBoroughPerWeek(Integer lethalsPerBoroughPerWeek) {
             this.lethalsPerBoroughPerWeek = lethalsPerBoroughPerWeek;
+      }
+
+      public void addAccidentsAt(int index, int num) {
+            this.accidentsPerBoroughPerWeek[index] += num;
+      }
+
+      public void addLethals(int num) {
+            this.lethalsPerBoroughPerWeek += num;
       }
 }
