@@ -1,39 +1,49 @@
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import scala.Tuple1;
-import scala.Tuple3;
-import scala.Tuple4;
+import scala.Tuple2;
 
 import java.sql.Date;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.spark.sql.functions.*;
 
 public class NyTest {
 
       public static void main(String[] args) {
+
+            //<editor-fold desc="SPARK SESSION CREATION">
             Logger.getLogger("org").setLevel(Level.OFF);
             Logger.getLogger("akka").setLevel(Level.OFF);
 
-            /*TO RUN IN LOCAL WITHOUT SPECIFYING PARAM*/
+            /*TO RUN IN LOCAL SPECIFYING PARAM*/
 
             String file = "";
             String master = "local[4]";
+            String core_exec = "";
+            String mem_exec = "";
             if(args.length >= 1) {
                   master = args[0];
                   file = args.length >= 2 ? args[1] : "";
+                  core_exec = args.length >= 3 ? args[2] : "";
+                  mem_exec = args.length >= 4 ? args[3] : "";
             }
 
-            if(file.equals("")) {
-                  System.out.println("ERROR: insert file path and name");
+            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
+                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
                   return;
             }
 
@@ -41,9 +51,13 @@ public class NyTest {
                         .builder()
                         .appName("NyTest")
                         .master(master)
+                        .config("spark.executor.cores", core_exec)
+                        .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
 
-            //Load data
+            //</editor-fold>
+
+            //<editor-fold desc="LOAD DATA">
             long startLoading = System.nanoTime();
             final List<StructField> schemaFields = new ArrayList<>();
             schemaFields.add(DataTypes.createStructField("date", DataTypes.DateType, true));
@@ -97,219 +111,49 @@ public class NyTest {
                                     "factor3",
                                     "factor4",
                                     "factor5")
+                        .withColumn("sum_death",
+                              col("n_person_killed").plus(
+                              col("n_pedestrian_killed").plus(
+                              col("n_cyclist_killed").plus(
+                              col("n_motor_killed")))))
                         ;
 
             dataSet.persist();
 
             long loadingTime = System.nanoTime() - startLoading;
-            //end of loading
+            //</editor-fold">
 
-            //query1
+            //<editor-fold desc="QUERY 1">
             long startQuery1Time = System.nanoTime();
 
+
             final Dataset<Row> minMaxDates = dataSet
-                        .select("date")
-                        .agg(min("date"), max("date"));
+                    .select("date")
+                    .agg(min("date"), max("date"));
 
             final Date globalMinDate = minMaxDates.first().getDate(0);
             final Date globalMaxDate = minMaxDates.first().getDate(1);
 
-            final Dataset<Row> lethalAccidentsSet = dataSet
-                        .withColumn("sum_death",
-                                    col("n_person_killed").plus(
-                                    col("n_pedestrian_killed").plus(
-                                    col("n_cyclist_killed").plus(
-                                    col("n_motor_killed")))))
-                        .filter(col("sum_death").gt(0))
-                        .drop("n_person_killed", "n_pedestrian_killed", "n_cyclist_killed", "n_motor_killed");
+
+            final Dataset<Row> lethalAccidentsSet = dataSet.filter(col("sum_death").gt(0))
+                        .drop("n_person_killed", "n_pedestrian_killed", "n_cyclist_killed", "n_motor_killed")
+                        ;
 
             lethalAccidentsSet.persist();
 
+
             int daysNo = (int)ChronoUnit.DAYS.between(globalMinDate.toLocalDate(), globalMaxDate.toLocalDate()) + 1;
-            int tempWeekNo = daysNo / 7;
+            int weeksNum = daysNo / 7;
             if((daysNo % 7) != 0) {
-                  tempWeekNo ++;
-            }
-            final int weeksNo = tempWeekNo;
-
-
-            int [] lethalAccidents = new int[weeksNo];
-            int totalLethalAccidents = 0;
-
-            JavaRDD<Tuple1<Integer>> indexesMap = lethalAccidentsSet.toJavaRDD().map(row -> {
-                  int index = (int)(ChronoUnit.DAYS.between
-                              (globalMinDate.toLocalDate(), row.getDate(0).toLocalDate()))+ 1;
-                  if(index != 0) {
-                        if(index % 7 == 0) {
-                              index = (index/7) -1;
-                        }
-                        else {
-                              index = index/7;
-                        }
-                  }
-                  return new Tuple1<>(index);
-            });
-
-            //dont know if slower or faster
-            //Map<Tuple1<Integer>, Long> indexesCounted = indexesMap.countByValue();
-            //indexesCounted.forEach((t, num) -> lethalAccidents[t._1()] = num.intValue());
-            //wrt to:
-            indexesMap.collect().forEach(t -> lethalAccidents[t._1()] ++);
-            //in any case (not done in a parallel way)
-
-            System.out.print("\nQUERY 1:\n");
-            for(int i = 0; i < weeksNo; i++) {
-                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethalAccidents[i], "lethal accidents");
-
-                  totalLethalAccidents += lethalAccidents[i];
-            }
-            System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
-
-            long query1Time = System.nanoTime() - startQuery1Time;
-            //end of query1
-
-            //query2
-            long startQuery2Time = System.nanoTime();
-
-            final Dataset<Row> accidentsCountPerFacSet = dataSet
-                        .groupBy(
-                                    "factor1",
-                                    "factor2",
-                                    "factor3",
-                                    "factor4",
-                                    "factor5")
-                        .count()
-                        ;
-
-            final Dataset<Row> deathsPerFacSet = accidentsCountPerFacSet
-                        .join(lethalAccidentsSet,
-                                    lethalAccidentsSet.col("factor1").eqNullSafe(accidentsCountPerFacSet.col("factor1"))
-                                                .and(lethalAccidentsSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
-                                                .and(lethalAccidentsSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
-                                                .and(lethalAccidentsSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
-                                                .and(lethalAccidentsSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5"))))
-                        .select(lethalAccidentsSet.col("factor1"),
-                                    lethalAccidentsSet.col("factor2"),
-                                    lethalAccidentsSet.col("factor3"),
-                                    lethalAccidentsSet.col("factor4"),
-                                    lethalAccidentsSet.col("factor5"),
-                                    lethalAccidentsSet.col("sum_death"))
-                        .groupBy(
-                                    "factor1",
-                                    "factor2",
-                                    "factor3",
-                                    "factor4",
-                                    "factor5")
-                        .sum("sum_death")
-                        ;
-
-            //THIS JOIN MUST BE LEFT OUTER!!!
-            //IN ORDER TO MANTAIN ALSO THAT TUPLES FOR WHICH NUMBER OF DEATHS IS 0
-            //AND SELECTION MUST BE THAT FOR THE SAME REASON
-            final Dataset<Row> joined = accidentsCountPerFacSet
-                        .join(deathsPerFacSet,
-                                    deathsPerFacSet.col("factor1").eqNullSafe(accidentsCountPerFacSet.col("factor1"))
-                                                .and(deathsPerFacSet.col("factor2").eqNullSafe(accidentsCountPerFacSet.col("factor2")))
-                                                .and(deathsPerFacSet.col("factor3").eqNullSafe(accidentsCountPerFacSet.col("factor3")))
-                                                .and(deathsPerFacSet.col("factor4").eqNullSafe(accidentsCountPerFacSet.col("factor4")))
-                                                .and(deathsPerFacSet.col("factor5").eqNullSafe(accidentsCountPerFacSet.col("factor5")))
-                                    , "full_outer")
-                        .select(accidentsCountPerFacSet.col("factor1"),
-                                    accidentsCountPerFacSet.col("factor2"),
-                                    accidentsCountPerFacSet.col("factor3"),
-                                    accidentsCountPerFacSet.col("factor4"),
-                                    accidentsCountPerFacSet.col("factor5"),
-                                    accidentsCountPerFacSet.col("count"),
-                                    deathsPerFacSet.col("sum(sum_death)"))
-                        ;
-            //table with factor1 ... factor5 count sum(sum_death)
-
-            Map<String, SupportClass2> supportClasses2 = Collections.synchronizedMap(new HashMap<>());
-
-            JavaRDD<Tuple3<List<String>, Integer, Integer>> resultsPerFactor = joined.toJavaRDD().map(row -> {
-                  List<String> toAdd = new ArrayList<>();
-                  for(int i = 0; i < row.size() - 2; i++) {
-                        if(row.getString(i) != null && !toAdd.contains(row.getString(i))) {
-                              toAdd.add(row.getString(i));
-                        }
-                  }
-                  int lethal = row.get(6) != null ? (int)row.getLong(6) : 0;
-                  return new Tuple3<>(toAdd, (int)row.getLong(5), lethal);
-            });
-
-            //(not done in a parallel way)
-            resultsPerFactor.collect().forEach(t -> {
-                  for(String s : t._1()) {
-                        //DO NOT INVERT ORDER OF PRESENT/ABSENT (obviously..)
-                        supportClasses2.computeIfPresent(s, (sf, vf) -> {
-                              vf.addToAccidents(t._2());
-                              vf.addToLethals(t._3());
-                              return vf;
-                        });
-
-                        supportClasses2.computeIfAbsent(s, v -> new SupportClass2(t._2(), t._3()));
-                  }
-            });
-
-            //int facLen = supportClasses2.size();
-            System.out.print("\nQUERY 2:\n");
-            System.out.printf("\t%-60s%-20s%-20s%s%n", "FACTOR", "N_ACCIDENTS", "N_DEATHS", "PERC_N_DEATHS");
-
-            for (String s : supportClasses2.keySet()) {
-                  SupportClass2 elem = supportClasses2.get(s);
-                  double perc = elem.getAccidents() != 0 ?
-                              ((elem.getLethals() * 100.0f) / elem.getAccidents()) :
-                              0;
-
-                  System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", s, elem.getAccidents(), elem.getLethals(), perc);
+                  weeksNum ++;
             }
 
-            long query2Time = System.nanoTime() - startQuery2Time;
-            //end of query2
+            final int weeksNo = weeksNum;
 
-
-            //query3
-            long startQuery3Time = System.nanoTime();
-
-            final Dataset<Row> boroughSet = dataSet
-                        .select("date", "borough")
-                        .filter(col("borough").isNotNull())
-                        .groupBy("borough", "date")
-                        .count()
-                        .withColumn("count_accidents", col("count"))
-                        .drop("count")
-                        .orderBy("borough", "date")
-                        ;
-            boroughSet.persist();
-
-            final Dataset<Row> deathBorough = lethalAccidentsSet
-                        .select("date", "borough")
-                        .filter(col("borough").isNotNull())
-                        .groupBy("borough", "date")
-                        .count()
-                        .withColumn("count_deaths", col("count"))
-                        .drop("count")
-                        .orderBy("borough", "date")
-                        ;
-
-            final Dataset<Row> accidentsAndDeathPerBorough = boroughSet
-                        .join(deathBorough,
-                                    deathBorough.col("borough").eqNullSafe(boroughSet.col("borough"))
-                                                .and(deathBorough.col("date").eqNullSafe(boroughSet.col("date")))
-                                    ,"full_outer")
-                        .select(boroughSet.col("borough"),
-                                    boroughSet.col("date"),
-                                    boroughSet.col("count_accidents"),
-                                    deathBorough.col("count_deaths"))
-                        .orderBy("borough", "date")
-                        ;
-
-            Map<String, SupportClass3> supportClasses3 = Collections.synchronizedMap(new HashMap<>());
-
-            JavaRDD<Tuple4<String, Integer, Integer, Integer>> perBorough =
-                        accidentsAndDeathPerBorough.toJavaRDD().map(row -> {
-                              int index = (int)(ChronoUnit.DAYS.between(
-                                          globalMinDate.toLocalDate(), row.getDate(1).toLocalDate())) + 1;
+            Function<Row, Integer> lethAccMap =
+                        (Function<Row, Integer>) row -> {
+                              int index = (int)(ChronoUnit.DAYS.between
+                                      (globalMinDate.toLocalDate(), row.getDate(0).toLocalDate()))+ 1;
                               if(index != 0) {
                                     if(index % 7 == 0) {
                                           index = (index/7) -1;
@@ -318,41 +162,165 @@ public class NyTest {
                                           index = index/7;
                                     }
                               }
+                              return index;
+                        };
 
-                              int lethal = row.get(3) != null ? (int)row.getLong(3) : 0;
+            Map<Integer, Long> lethalAccidentsByIndex = lethalAccidentsSet.toJavaRDD().map(lethAccMap).countByValue();
 
-                              return new Tuple4<>(row.getString(0), index, (int)row.getLong(2), lethal);
-                        });
+            long lethAcc;
+            int totalLethalAccidents = 0;
+            System.out.print("\nQUERY 1:\n");
+            for(int i = 0; i < weeksNo; i++) {
+                  if (lethalAccidentsByIndex.get(i) != null)
+                        lethAcc = lethalAccidentsByIndex.get(i);
+                  else
+                        lethAcc = 0;
+                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethAcc, "lethal accidents");            //problema se lookup di i non c'è?
 
-            //actually update (not done in a parallel way)
-            perBorough.collect().forEach(t -> {
-                  supportClasses3.computeIfAbsent(t._1(), v -> new SupportClass3(new int[weeksNo], 0));
-                  supportClasses3.computeIfPresent(t._1(), (sf, vf) -> {
-                        vf.addAccidentsAt(t._2(), t._3());
-                        vf.addLethals(t._4());
-                        return vf;
-                  });
+                  totalLethalAccidents += lethAcc;
+            }
+
+            System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
+
+/*
+            int [] lethAccidents = new int[weeksNo];
+            lethalAccidentsByIndex.forEach((k, v) -> lethAccidents[k] += v);
+            int totalLethalAccidents = 0;
+
+            System.out.print("\nQUERY 1:\n");
+            for(int i = 0; i < weeksNo; i++) {
+                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethAccidents[i], "lethal accidents");            //problema se lookup di i non c'è?
+
+                  totalLethalAccidents += lethAccidents[i];
+            }
+
+
+            System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
+*/
+
+            long query1Time = System.nanoTime() - startQuery1Time;
+            //</editor-fold>
+
+            //<editor-fold desc="QUERY 2">
+            long startQuery2Time = System.nanoTime();
+
+
+            PairFlatMapFunction<Row, String, SupportClass2> FromContribFactToRDD =
+                        (PairFlatMapFunction<Row, String, SupportClass2>) row -> {
+                              List<Tuple2<String, SupportClass2>> rowContribFact = new ArrayList<>();
+                              List<String> rowContribFactNames = new ArrayList<>();
+                              int lethal = row.getAs("sum_death");
+                              //6 = factor1 -> 10 factor5
+                              for(int i = 6; i < 11; i++) {
+                                    String s = (String)row.get(i);
+                                    if (s != null && !rowContribFactNames.contains(s)) {
+                                          Tuple2<String, SupportClass2> contribF = new Tuple2<>((String) row.get(i), new SupportClass2(1, lethal));
+                                          rowContribFact.add(contribF);
+                                          rowContribFactNames.add(s);
+                                    }
+                              }
+                              return rowContribFact.iterator();
+                        };
+
+            JavaPairRDD<String, SupportClass2> contribFacts = dataSet.toJavaRDD().flatMapToPair(FromContribFactToRDD);
+
+            Function<SupportClass2, SupportClass2> createAcc = (Function<SupportClass2, SupportClass2>) x -> x;
+
+            Function2<SupportClass2, SupportClass2, SupportClass2> addLocal =
+                        (Function2<SupportClass2, SupportClass2, SupportClass2>) (partial, x) -> new SupportClass2(partial.getAccidents() + 1, partial.getLethals() + x.getLethals());
+
+            Function2<SupportClass2, SupportClass2, SupportClass2> combine =
+                        (Function2<SupportClass2, SupportClass2, SupportClass2>) (localA, localB) -> new SupportClass2(localA.getAccidents() + localB.getAccidents(),
+                                localA.getLethals() + localB.getLethals());
+
+            JavaPairRDD<String, SupportClass2> combinedContribFacts = contribFacts.combineByKey(createAcc, addLocal, combine);
+
+            System.out.print("\nQUERY 2:\n");
+            System.out.printf("\t%-60s%-20s%-20s%s%n", "FACTOR", "N_ACCIDENTS", "N_DEATHS", "PERC_N_DEATHS");
+
+            //(not done in parallel - although in this is case is possible)
+            combinedContribFacts.collect().forEach(elem -> {
+                  final double perc = elem._2().getAccidents() != 0 ?
+                          ((elem._2().getLethals()*100.0f)/elem._2().getAccidents()) :
+                          0;
+
+                  System.out.printf("\t%-60s%-20d%-20d%.2f%%%n", elem._1(), elem._2().getAccidents(), elem._2().getLethals(), perc);
             });
 
-            System.out.print("\nQUERY 3:\n");
-            for (String s : supportClasses3.keySet()) {
-                  SupportClass3 elem = supportClasses3.get(s);
-                  System.out.printf("\tBOROUGH: %s\n", s);
+            long query2Time = System.nanoTime() - startQuery2Time;
+            //</editor-fold>
 
-                  for (int j = 0; j < elem.getAccidentsPerBoroughPerWeek().length; j++) {
-                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, elem.getAccidentsPerBoroughPerWeek()[j], "accidents");
+            //<editor-fold desc="QUERY 3">
+            long startQuery3Time = System.nanoTime();
+
+            PairFunction<Row, String, SupportClass3a> toSupportClass3a =
+                        (PairFunction<Row, String, SupportClass3a>) row -> {
+
+                              int index = (int)(ChronoUnit.DAYS.between
+                                      (globalMinDate.toLocalDate(), row.getDate(0).toLocalDate()))+ 1;
+                              if(index != 0) {
+                                    if(index % 7 == 0) {
+                                          index = (index/7) -1;
+                                    }
+                                    else {
+                                          index = index/7;
+                                    }
+                              }
+                              int lethal = (int)row.getAs("sum_death") > 0 ? 1 : 0;
+                              return new Tuple2<>(row.getString(1), new SupportClass3a(index, lethal));
+            };
+
+
+            Function<SupportClass3a, SupportClass3b> createComb =
+                        (Function<SupportClass3a, SupportClass3b>) x -> {
+
+                              SupportClass3b supportClass3b = new SupportClass3b(weeksNo, 0);
+                              supportClass3b.addAccident(x.getIndex());
+                              supportClass3b.addLethalAcc(x.getLethal());
+                              return supportClass3b;
+            };
+
+            Function2<SupportClass3b, SupportClass3a, SupportClass3b> mergeValue =
+                        (Function2<SupportClass3b, SupportClass3a, SupportClass3b>) (partial, x) -> {
+
+                              partial.addAccident(x.getIndex());
+                              partial.addLethalAcc(x.getLethal());
+                              return partial;
+                        };
+
+            Function2<SupportClass3b, SupportClass3b, SupportClass3b> mergeCombine =
+                        (Function2<SupportClass3b, SupportClass3b, SupportClass3b>) (localA, localB) -> {
+
+                              localA.addLethalAcc(localB.getLethalsAcc());
+                              localA.addLethalAccidents(localB.getAccidentsPerBoroughPerWeek());
+                              return localA;
+                        };
+
+            JavaPairRDD<String, SupportClass3a> boroughAccidents = dataSet.toJavaRDD()
+                        .filter(row -> row.getString(1) != null)
+                        .mapToPair(toSupportClass3a);
+
+            JavaPairRDD<String, SupportClass3b> boroughAccidentsPerWeek = boroughAccidents
+                        .combineByKey(createComb, mergeValue, mergeCombine);
+
+            System.out.print("\nQUERY 3:\n");
+
+            boroughAccidentsPerWeek.collect().forEach(borough -> {
+                  System.out.printf("\tBOROUGH: %s\n", borough._1());
+
+                  for(int j = 0; j < weeksNo; j++) {
+                        System.out.printf("\t\tWeek%-5d%-10d%-2s\n", 1 + j, borough._2().getAccidentsPerBoroughPerWeek()[j] , "accidents");
                   }
 
                   System.out.printf("\t\tAvg lethal accidents/week: %.2f%% (%d lethal accidents over %d weeks)\n\n",
-                              (100.0f * elem.getLethalsPerBoroughPerWeek()) / elem.getAccidentsPerBoroughPerWeek().length,
-                              elem.getLethalsPerBoroughPerWeek(),
-                              elem.getAccidentsPerBoroughPerWeek().length);
-            }
+                          (100.0f * borough._2().getLethalsAcc()/weeksNo),
+                          borough._2().getLethalsAcc(), weeksNo);
+            });
 
             long query3Time = System.nanoTime() - startQuery3Time;
+            //</editor-fold>
 
-            //end of query3
-
+            //<editor-fold desc="PRINTING">
             System.out.println("\nIt took " + loadingTime/1000000000.0f + " seconds to load data (and order it)");
             System.out.println("It took " + query1Time/1000000000.0f + " seconds to calculate query 1");
             System.out.println("It took " + query2Time/1000000000.0f + " seconds to calculate query 2");
@@ -361,5 +329,7 @@ public class NyTest {
             /*Scanner scanner = new Scanner(System.in);
             scanner.nextLine();
             spark.close();*/
+            //</editor-fold>
+
       }
 }

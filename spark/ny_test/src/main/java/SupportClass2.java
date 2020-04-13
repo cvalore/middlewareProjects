@@ -1,8 +1,9 @@
-public class SupportClass2 {
+import java.io.Serializable;
 
-      //private String factor;
-      private int accidents = 0;
-      private int lethals = 0;
+public class SupportClass2 implements Serializable {
+
+      private int accidents;
+      private int lethals;
 
       public SupportClass2() {
       }
@@ -26,13 +27,5 @@ public class SupportClass2 {
 
       public void setLethals(int lethals) {
             this.lethals = lethals;
-      }
-
-      public void addToAccidents(int accidentsToAdd) {
-            this.accidents += accidentsToAdd;
-      }
-
-      public void addToLethals(int lethalToAdd) {
-            this.lethals += lethalToAdd;
       }
 }
