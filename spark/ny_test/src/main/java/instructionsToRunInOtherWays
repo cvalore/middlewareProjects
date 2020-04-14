@@ -41,7 +41,7 @@ final SparkSession spark = SparkSession
             .getOrCreate();
 */
 
-/*TO LAUNCH SPECIFYING PARAM*/
+/*TO LAUNCH IN LOCAL SPECIFYING PARAM*/
 /*
 String file = "";
 String master = "local[4]";
@@ -67,3 +67,26 @@ final SparkSession spark = SparkSession
             .config("spark.executor.memory", mem_exec)
             .getOrCreate();
 */
+
+/* TO RUN IN LOCAL */
+/*
+String file = "";
+String master = "local[4]";
+if(args.length >= 1) {
+      master = args[0];
+      file = args.length >= 2 ? args[1] : "";
+}
+
+if(file.equals("")) {
+      System.out.println("ERROR: insert file path and name");
+      return;
+}
+
+
+final SparkSession spark = SparkSession
+            .builder()
+            .appName("NyTest")
+            .master(master)
+            .getOrCreate();
+
+ */
