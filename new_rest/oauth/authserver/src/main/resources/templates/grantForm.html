@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Authorization Server</title>
+</head>
+<body>
+
+<h1> Grant form </h1>
+
+<h2>
+    <span th:text="'Do you accept to give permissions to : ' + ${clientId} + '?'"></span>
+    <br>
+    <span th:text="'Login with your Resource Server credentials to accept'"></span>
+    <br>
+    <form id="request_form" method="post" onsubmit="requestFunction()">
+        <label>Give permission </label>
+        <br>
+        <label>Username: </label><input type="text" id="username">
+        <br>
+        <label>Password: </label><input type="text" id="password">
+        <br>
+        <input type="submit" value="OK">
+    </form>
+</h2>
+
+<script th:inline="javascript">
+
+/*<![CDATA[*/
+
+    var clientId = /*[[${clientId}]]*/ 'default';
+    var redirectUrl = /*[[${redirectUrl}]]*/ 'default';
+
+/*]]>*/
+
+
+    function requestFunction() {
+
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+
+        document.getElementById("request_form").action =
+        "http://localhost:8081/authserver/api/signin?username="+ username + "&password=" +
+            password + "&client_id=" + clientId + "&redirect_url=" + redirectUrl;
+    }
+</script>
+
+</body>
+</html>

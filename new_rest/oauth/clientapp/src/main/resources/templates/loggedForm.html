@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Client app Example</title>
+
+    <link rel="stylesheet" th:href="@{webjars/bootstrap/4.2.1/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+<body>
+<main role="main" class="container">
+
+    <div class="starter-template">
+        <h1>Client app Example</h1>
+        <h2>
+            <span th:text="'Logged as : ' + ${username}"></span>
+        </h2>
+        <form id="request_form" method="post" onsubmit="requestFunction()">
+            <label>Request for images! -> </label>
+            <input type="submit" value="request">
+        </form>
+    </div>
+
+</main>
+
+<script th:inline="javascript">
+
+/*<![CDATA[*/
+
+    var username = /*[[${username}]]*/ 'default';
+
+/*]]>*/
+
+    function requestFunction() {
+        document.getElementById("request_form").action =
+        "http://localhost:8082/client/api/checkForToken?username=" + username;
+    }
+</script>
+
+<!--<script th:inline="javascript">
+
+/*<![CDATA[*/
+
+    var clientId = /*[[${client_id}]]*/ 'default';
+    var redirectUrl = /*[[${redirect_url}]]*/ 'default';
+
+/*]]>*/
+
+    function requestFunction() {
+        document.getElementById("request_form").action =
+        "http://localhost:8081/authserver/api/auth?response_type=code&client_id=" +
+            clientId + "&redirect_url=" + redirectUrl;
+    }
+</script>
+-->
+
+</body>
+</html>
