@@ -99,7 +99,7 @@ public class ClientController {
                   //do the request for token to
                   //"http://localhost:8081/authserver/api/auth?response_type=code&client_id=" +
                   //            clientId + "&redirect_url=" + redirectUrl;
-                  String authRedirect = "http://localhost:8081/authserver/api/auth" +
+                  String authRedirect = clientService.getAuthPath() +
                               "?response_type=code&client_id=" +
                               clientService.getClientId() +
                               "&redirect_url=" +

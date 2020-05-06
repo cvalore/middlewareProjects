@@ -41,6 +41,11 @@ public class ClientServiceImpl implements ClientService {
       }
 
       @Override
+      public String getAuthPath() {
+            return Database.AUTH_URL;
+      }
+
+      @Override
       public String checkForToken(String username) {
             return Database.checkForToken(username);
       }

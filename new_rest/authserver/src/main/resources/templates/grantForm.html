@@ -40,7 +40,7 @@
         var password = document.getElementById("password").value;
 
         document.getElementById("request_form").action =
-        "http://localhost:8081/authserver/api/signin?username="+ username + "&password=" +
+        "https://carmelo-polimi-auth-server.herokuapp.com/authserver/api/signin?username="+ username + "&password=" +
             password + "&client_id=" + clientId + "&redirect_url=" + redirectUrl;
     }
 </script>

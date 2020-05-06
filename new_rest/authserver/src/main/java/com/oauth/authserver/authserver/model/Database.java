@@ -9,7 +9,7 @@ public class Database {
 
       public static final int EXPIRES_AUTH_CODE = 8; //minutes
       public static final int EXPIRES_TOKEN = 45; //minutes
-      public static final String ME = "http://localhost:8081/authserver/api";
+      public static final String ME = "https://carmelo-polimi-auth-server.herokuapp.com/authserver/api";
       public static final String TEST_KEY = "test_key";
 
       public static Connection getConnection() {

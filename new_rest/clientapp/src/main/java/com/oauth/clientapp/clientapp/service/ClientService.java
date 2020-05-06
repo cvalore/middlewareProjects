@@ -16,6 +16,8 @@ public interface ClientService {
 
       String getResourcePath();
 
+      String getAuthPath();
+
       String checkForToken(String username);
 
       boolean addUsernamesToken(String username, String accessToken);
