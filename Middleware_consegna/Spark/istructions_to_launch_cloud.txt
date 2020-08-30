@@ -1,0 +1,4 @@
+aws s3 cp s3://carmelosparkbucket/ny_test.jar .
+
+spark-submit --class NyTest ./ny_test.jar s3n://carmelosparkbucket/db.csv 5 8g
+

@@ -116,7 +116,7 @@ int daysBetween(int, int, int, int, int, int);
 int toEpochDay(int, int, int);
 int weekInYears(int, int, int);
 
-MinMaxDate minMaxDate = {-1, 1, -1, -1, -1, -1};
+MinMaxDate minMaxDate = {-1, -1, -1, -1, -1, -1};
 ReadInfo * localReadInfo;
 int weeksNo = 0;
 int count = 0;
@@ -129,14 +129,15 @@ int msgtag = 0;
 MPI_Datatype Tupletype;
 
 int main(int argc, char** argv) {
-    //qui potremmo mettere un controllo sul rank del processo che sta eseguendo
     if (argc < 2) {
         printf("ERROR: Insert the name of the source file\n");
         return -1;
     }
 
-    omp_set_num_threads(4);
-    //Data structures
+	//Give it through command line
+    //omp_set_num_threads(4);
+    
+	//Data structures
     FILE *fin = fopen(argv[1], "r");
 
     //Setup the MPI environment
@@ -190,10 +191,7 @@ int main(int argc, char** argv) {
     }
     fclose(fin);
 
-    //set the right position for each process
-    //fseek(fin, localReadInfo->start_pos, SEEK_SET);
     localTuples = malloc(sizeof(Tuple) * INITDIM);
-
     double beginLoading = cpuSecond();
 
 #pragma omp parallel
@@ -216,11 +214,7 @@ int main(int argc, char** argv) {
         //Read and discard the first incomplete row
         fgets(buf, LINELENGTH, tmp);
 
-//    if (buf == NULL) {
-//        fscanf(fin, "\n");
-//    }
-
-        while(ftell(tmp) <= thread_read_info.end_pos) {         //CONTROLLARE L'UGUALE
+        while(ftell(tmp) <= thread_read_info.end_pos) {
             if(fgets(buf, LINELENGTH, tmp) != NULL) {
                 processRow(buf);
             }
@@ -232,8 +226,6 @@ int main(int argc, char** argv) {
     }
 
 
-    //Starting time of loading data section
-    //readTheWholeTable(fin);
     //QUERY STUFFS
 
     //Find local oldest and newest date
@@ -273,35 +265,23 @@ int main(int argc, char** argv) {
 
     int localLethalAccidentsData[weeksNo];
     int globalLethalAccidentsData[weeksNo];
-
-    //Initialize a lock for each week to avoid race condition
-    //omp_lock_t localLethalAccidentsDataLock[weeksNo];
     int totalLethalAccidents = 0;
 
     //Init
 #pragma omp parallel for
     for (int i = 0; i < weeksNo; i++) {
-        //omp_init_lock(&localLethalAccidentsDataLock[i]);
         localLethalAccidentsData[i] = 0;
     }
 
 
     //Define locally the num of accidents and of lethal accidents for each week
-//#pragma omp parallel for
     for (int i = 0; i < count; i++) {
         if (localTuples[i].day != -1 && localTuples[i].month != -1 && localTuples[i].year != -1) {
             int index = weekInYears(localTuples[i].day, localTuples[i].month, localTuples[i].year);
-            //omp_set_lock(&localLethalAccidentsDataLock[index]);
             localLethalAccidentsData[index] += killed(localTuples[i], 0);
-            //omp_unset_lock(&localLethalAccidentsDataLock[index]);
         }
     }
-/*
-    //Destroy the used locks
-    for (int i = 0; i < weeksNo; i++) {
-        omp_destroy_lock(&localLethalAccidentsDataLock[i]);
-    }
-*/
+
     //Collect the local data in the root process
     if (world_size > 1) {
         MPI_Reduce(localLethalAccidentsData, globalLethalAccidentsData, weeksNo, MPI_INT, MPI_SUM, root,
@@ -314,10 +294,8 @@ int main(int argc, char** argv) {
     if (world_size > 1) {
         if (world_rank == root) {
             printf("\nQUERY 1:\n");
-//#pragma omp parallel for
             for (int i = 0; i < weeksNo; i++) {
                 printf("\tWeek%-5d%-10d%-2s\n", i + 1, globalLethalAccidentsData[i], "lethal accidents");
-//#pragma omp critical
                 {
                     totalLethalAccidents += globalLethalAccidentsData[i];
                 }
@@ -325,20 +303,16 @@ int main(int argc, char** argv) {
             printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo,
                    (100.0f * totalLethalAccidents) / weeksNo);
         }
-    } else{
-        if (world_rank == root) {
-            printf("\nQUERY 1:\n");
-//#pragma omp parallel for
-            for (int i = 0; i < weeksNo; i++) {
-                printf("\tWeek%-5d%-10d%-2s\n", i + 1, localLethalAccidentsData[i], "lethal accidents");
-//#pragma omp critical
-                {
-                    totalLethalAccidents += localLethalAccidentsData[i];
-                }
-            }
-            printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo,
-                   (100.0f * totalLethalAccidents) / weeksNo);
-        }
+    } else {        
+		printf("\nQUERY 1:\n");
+		for (int i = 0; i < weeksNo; i++) {
+			printf("\tWeek%-5d%-10d%-2s\n", i + 1, localLethalAccidentsData[i], "lethal accidents");
+			{
+				totalLethalAccidents += localLethalAccidentsData[i];
+			}
+		}
+		printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo,
+			   (100.0f * totalLethalAccidents) / weeksNo);
     }
 
     double query1Duration = cpuSecond() - query1Begin_2;
@@ -385,10 +359,13 @@ int main(int argc, char** argv) {
                     ptrList[j]->facAccCount = ptrList[j]->facAccCount + 1;
                 }
             } else {
+				//assumption: factors in the db are provided without "holes"
                 j = 5;
             }
         }
 
+
+		//head insertion -> update head and then directly update the others modified
         localFactList->prevCount = localFactList->facAccCount;
         for (int k = 0; k < 5; k++) {
             if (ptrList[k] != NULL)
@@ -399,7 +376,7 @@ int main(int argc, char** argv) {
     FacList *globalFactList;
     FactorName *receivedFactName;
     if (world_size > 1) {
-        int factAllocatedSize = factNum * 2;                        //size to adjust?
+        int factAllocatedSize = factNum * 2;
         FactorName *factNames = malloc(sizeof(FactorName) * factAllocatedSize);
 
         //Define the local list of factor names
@@ -444,8 +421,7 @@ int main(int argc, char** argv) {
 
 
         //Create and initialize the global list of factors
-        globalFactList = malloc(sizeof(FacList) *
-                                         factNum);           //it does not work calling the ad hoc function initializeFactList..
+        globalFactList = malloc(sizeof(FacList) * factNum);
 #pragma parallel for
         for (int i = 0; i < factNum; ++i) {
             globalFactList[i].facName = strdup(factNames[i].factorName);
@@ -555,31 +531,30 @@ int main(int argc, char** argv) {
 
     BorList *borPtr = localBorList;
     int allocatedSize = boroughNum * 10;
-        BoroughName * boroughNames = malloc(sizeof(BoroughName) * allocatedSize);
+	BoroughName * boroughNames = malloc(sizeof(BoroughName) * allocatedSize);
 
-        //Process the local data for each borough and populate the list of borough names
+	//Process the local data for each borough and populate the list of borough names
 #pragma omp parallel
-        {
+	{
 #pragma omp single
-            {
-                for( int i = 0; borPtr != NULL && borPtr->borName != NULL; i++) {
+		{
+			for( int i = 0; borPtr != NULL && borPtr->borName != NULL; i++) {
 #pragma omp task firstprivate(borPtr)
-                    {
-                        processBorough(borPtr);
-                    }
-                    strcpy(boroughNames[i].boroughName, borPtr->borName);
-                    borPtr = borPtr->next;
-                }
-            }
-        }
+				{
+					processBorough(borPtr);
+				}
+				strcpy(boroughNames[i].boroughName, borPtr->borName);
+				borPtr = borPtr->next;
+			}
+		}
+	}
 
     BorList *globalBorList;
     BoroughName * receivedBoroughName;
     if (world_size > 1) {
         //Send to the root process the local list of borough names
         //The root process will update its own list and then forward the complete one to the other processes
-        receivedBoroughName = malloc(
-                sizeof(BoroughName) * allocatedSize);                 //size to adjust?
+        receivedBoroughName = malloc(sizeof(BoroughName) * allocatedSize);
         msgtag = 0;
         int realNumOfReceivedBorough;
         if (world_rank != root) {
@@ -787,7 +762,6 @@ MPI_Datatype * defineMPITupleType(MPI_Datatype * newType){
 }
 
 
-
 MPI_Datatype * defineMPIMinMaxDateType(MPI_Datatype * newType) {
 
     int dim = MPI_DATATYPE_MIN_MAX_DATE;
@@ -839,43 +813,11 @@ MPI_Datatype * defineFactorNameType(MPI_Datatype * newType) {
     return newType;
 }
 
-/*
-void readTheWholeTable(FILE * fin){
-    char buf[LINELENGTH];
-    bool beyond_size = false;
-
-    //Read and discard the first incomplete row
-    fgets(buf, LINELENGTH, fin);
-    //fscanf(fin, "%m[^\n]\n", &buf);
-//    if (buf == NULL) {
-//        fscanf(fin, "\n");
-//    }
-//Read the whole table line by line
-#pragma omp parallel
-    {
-#pragma omp single
-        {
-            while (fgets(buf, LINELENGTH, fin) != NULL && !beyond_size) {
-#pragma omp task firstprivate(buf)
-                {
-                    processRow(buf);
-                }
-                if (ftell(fin) > end_pos) {
-                    beyond_size = true;
-                }
-            }
-        }
-    }
-    fclose(fin);
-}
-*/
 
 void processRow(char* row){
 
     //Parse the line char by char
-    //int len = strlen(row) + 2;
     int len = strlen(row);
-    //row = realloc(row, len);
     row[len - 1] = ',';
     row[len] = '\0';
     char *sup = malloc(len + 1);
@@ -907,13 +849,12 @@ void processRow(char* row){
 
     free(sup);
 
-    //free(row);
     Tuple* toAdd;
 #pragma omp critical
     {
         toAdd = &(localTuples[count]);
         count++;
-        copyInto(toAdd, &toInsert);             //POTREBBE ESSERE UNSAFE?
+        copyInto(toAdd, &toInsert);
         if (count == maxdim) {
             maxdim = maxdim * 2;
             localTuples = realloc(localTuples, sizeof(Tuple) * maxdim);
@@ -944,315 +885,6 @@ void copyInto(Tuple* tuple, Tuple* tupleToInsert){
     strcpy(tuple->factor5, tupleToInsert->factor5);
 }
 
-
-void processBorough(BorList* borPunt){
-
-    borPunt->accidents = malloc(sizeof(int) * weeksNo);
-    borPunt->lethals = 0;
-    //init array
-#pragma parallel for
-    for (int i = 0; i < weeksNo; i++)
-        borPunt->accidents[i] = 0;
-
-    //Populate array
-    DateList* datePtr = borPunt->dates;
-    while (datePtr != NULL) {
-        if (datePtr->day != -1 && datePtr->month != -1 && datePtr->year != -1) {
-            int index = weekInYears(datePtr->day, datePtr->month, datePtr->year);
-            borPunt->accidents[index] = borPunt->accidents[index] + 1;
-            borPunt->lethals += datePtr->lethCount;
-        }
-
-        datePtr = datePtr->next;
-    }
-}
-
-bool isBoroughPresent(char * boroughName, BoroughName * boroughNames, int boroughNamesSize){
-    for (int i = 0; i < boroughNamesSize; ++i) {
-        if (strcmp(boroughName, boroughNames[i].boroughName) == 0)
-            return true;
-    }
-    strcpy(boroughNames[boroughNamesSize].boroughName, boroughName);
-    return false;
-}
-
-
-bool isFactorPresent(char * factorName, FactorName * factorNames, int factorNameSize) {
-    for (int i = 0; i < factorNameSize; ++i) {
-        if (strcmp(factorName, factorNames[i].factorName) == 0)
-            return true;
-    }
-    strcpy(factorNames[factorNameSize].factorName, factorName);
-    return false;
-}
-
-
-BorList * initializeBorList(BoroughName * boroughNames, int size) {
-    BorList * borList = malloc(sizeof(BorList) * size);
-#pragma parallel for
-    for (int i = 0; i < size; ++i) {
-        borList[i].borName = strdup(boroughNames[i].boroughName);
-        borList[i].accidents = malloc(sizeof(int) * weeksNo);
-    }
-    return borList;
-}
-
-
-/*
-FacList * initializeFactList(FactorName * factNames, int size){
-    FacList * facList = malloc(sizeof(facList) * size);
-#pragma parallel for
-    for (int i = 0; i < size; ++i) {
-        facList[i].facName = strdup(factNames[i].factorName);
-    }
-    return facList;
-}
-*/
-
-
-int * initializeEmptyAccidentArray() {
-    int * accidents = malloc(sizeof(int) * weeksNo);
-#pragma parallel for
-    for (int i = 0; i < weeksNo; ++i) {
-        accidents[i] = 0;
-    }
-    return accidents;
-}
-
-
-int weekInYears(int day, int month, int year) {
-    int gap = daysBetween(minMaxDate.minDay, minMaxDate.minMonth, minMaxDate.minYear, day, month, year);
-    //useless but just to be sure
-    if(gap == 0)
-        return 0;
-    if(gap % 7 == 0)
-        return ((gap/7) - 1);
-    return gap/7;
-}
-
-//starting and ending date INCLUDED
-int daysBetween(int sDay, int sMonth, int sYear, int eDay, int eMonth, int eYear) {
-    return 1 + toEpochDay(eDay, eMonth, eYear) - toEpochDay(sDay, sMonth, sYear);
-}
-
-//taken from the implementation of JAVA
-int toEpochDay(int day, int month, int year) {
-    int y = year;
-    int m = month;
-    int total = 0;
-    total += 365 * y;
-    if (y >= 0) {
-        total += (y + 3) / 4 - (y + 99) / 100 + (y + 399) / 400;
-    }
-    else {
-        total -= y / -4 - y / -100 + y / -400;
-    }
-
-    total += (367 * m - 362) / 12;
-    total += day - 1;
-    if (m > 2) {
-        --total;
-        if (leapYear(year) == 0) {
-            --total;
-        }
-    }
-
-    return total - 719528;
-}
-
-char * selectFactor(Tuple * currTuple, int position){
-    switch (position) {
-        case 0:
-            return currTuple->factor1;
-        case 1:
-            return currTuple->factor2;
-        case 2:
-            return currTuple->factor3;
-        case 3:
-            return currTuple->factor4;
-        case 4:
-            return currTuple->factor5;
-    }
-}
-
-FacList* factFind(char* str, FacList* list) {
-    FacList* ptr = list;
-    if(ptr->facName == NULL) {
-        return NULL;
-    }
-    while(ptr != NULL) {
-        if(strcmp(str, ptr->facName) == 0)
-            return ptr;
-        ptr = ptr->next;
-    }
-    return NULL;
-}
-
-BorList* borFind(char* str, BorList* list) {
-    BorList* ptr = list;
-    if(ptr->borName == NULL) {
-        return NULL;
-    }
-    while(ptr != NULL) {
-        if(strcmp(str, ptr->borName) == 0)
-            return ptr;
-        ptr = ptr->next;
-    }
-    return NULL;
-}
-
-void compareMaxDate(int day, int month, int year, int* maxDay, int* maxMonth, int* maxYear) {
-    if(day == -1 || month == -1 || year == -1)
-        return;
-    if(*maxDay == -1 || *maxMonth == -1 || *maxYear == -1) {
-        *maxDay = day;
-        *maxMonth = month;
-        *maxYear = year;
-        return;
-    }
-    if(year > *maxYear) {
-        *maxDay = day;
-        *maxMonth = month;
-        *maxYear = year;
-        return;
-    }
-    if(year == *maxYear) {
-        if(month > *maxMonth) {
-            *maxDay = day;
-            *maxMonth = month;
-            return;
-        }
-        if(month == *maxMonth) {
-            if(day > *maxDay) {
-                *maxDay = day;
-            }
-        }
-    }
-}
-
-void compareMinDate(int day, int month, int year, int* minDay, int* minMonth, int* minYear) {
-    if(day == -1 || month == -1 || year == -1)
-        return;
-    if(*minDay == -1 || *minMonth == -1 || *minYear == -1) {
-        *minDay = day;
-        *minMonth = month;
-        *minYear = year;
-        return;
-    }
-    if(year < *minYear) {
-        *minDay = day;
-        *minMonth = month;
-        *minYear = year;
-        return;
-    }
-    if(year == *minYear) {
-        if(month < *minMonth) {
-            *minDay = day;
-            *minMonth = month;
-            return;
-        }
-        if(month == *minMonth) {
-            if(day < *minDay) {
-                *minDay = day;
-            }
-        }
-    }
-}
-
-int nonLethAccidents(Tuple t) {
-    int n5 = t.n_people_injured;
-    int n6 = t.n_pedestrian_injured;
-    int n7 = t.n_motor_injured;
-    int n8 = t.n_cyclist_injured;
-    if(n5 < 0)	n5 = 0;
-    if(n6 < 0) 	n6 = 0;
-    if(n7 < 0)	n7 = 0;
-    if(n8 < 0)	n8 = 0;
-    return n5+n6+n7+n8;
-}
-
-
-int killed(Tuple t, int flag) {
-    int n1 = t.n_people_killed;
-    int n2 = t.n_pedestrian_killed;
-    int n3 = t.n_motor_killed;
-    int n4 = t.n_cyclist_killed;
-    if(n1 < 0)	n1 = 0;
-    if(n2 < 0) 	n2 = 0;
-    if(n3 < 0)	n3 = 0;
-    if(n4 < 0)	n4 = 0;
-
-    if(!flag)
-        return (n1||n2||n3||n4);
-    return n1+n2+n3+n4;
-}
-
-int leapYear(int year){
-    //the year is not a leap year
-    if(year % 4 != 0) {
-        return 0;
-    }
-    if(year % 100 != 0) {
-        return 1;
-    }
-    if(year % 400 == 0) {
-        return 1;
-    }
-    return 0;
-}
-
-int nDayInMonth(int month) {
-    switch(month) {
-        case 1:
-            return 31;
-        case 2:
-            return 28;
-        case 3:
-            return 31;
-        case 4:
-            return 30;
-        case 5:
-            return 31;
-        case 6:
-            return 30;
-        case 7:
-            return 31;
-        case 8:
-            return 31;
-        case 9:
-            return 30;
-        case 10:
-            return 31;
-        case 11:
-            return 30;
-        case 12:
-            return 31;
-        defualt:
-        {
-            printf("ERROR: Cannot calculate day in this month (%d) properly\n", month);
-            return -1;
-        }
-    }
-}
-
-void parseDate(char* str, int* d, int* m, int* y) {
-    char* day;
-    char* month;
-    char* year;
-    sscanf(str, "%m[^/]/%m[^/]/%ms", &month, &day, &year);
-    *d = atoi(day);
-    *m = atoi(month);
-    *y = atoi(year);
-    free(day);
-    free(month);
-    free(year);
-}
-
-double cpuSecond(){
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return ((double)tp.tv_sec+(double)tp.tv_usec*1.e-6);
-}
 
 void initField(int paramCount, char* param, Tuple* t) {
     switch (paramCount) {
@@ -1371,5 +1003,315 @@ void initField(int paramCount, char* param, Tuple* t) {
         case 27: break;
         case 28: break;
     }
+}
+
+
+void parseDate(char* str, int* d, int* m, int* y) {
+    char* day;
+    char* month;
+    char* year;
+    sscanf(str, "%m[^/]/%m[^/]/%ms", &month, &day, &year);
+    *d = atoi(day);
+    *m = atoi(month);
+    *y = atoi(year);
+    free(day);
+    free(month);
+    free(year);
+}
+
+
+void compareMaxDate(int day, int month, int year, int* maxDay, int* maxMonth, int* maxYear) {
+    if(day == -1 || month == -1 || year == -1)
+        return;
+    if(*maxDay == -1 || *maxMonth == -1 || *maxYear == -1) {
+        *maxDay = day;
+        *maxMonth = month;
+        *maxYear = year;
+        return;
+    }
+    if(year > *maxYear) {
+        *maxDay = day;
+        *maxMonth = month;
+        *maxYear = year;
+        return;
+    }
+    if(year == *maxYear) {
+        if(month > *maxMonth) {
+            *maxDay = day;
+            *maxMonth = month;
+            return;
+        }
+        if(month == *maxMonth) {
+            if(day > *maxDay) {
+                *maxDay = day;
+            }
+        }
+    }
+}
+
+
+void compareMinDate(int day, int month, int year, int* minDay, int* minMonth, int* minYear) {
+    if(day == -1 || month == -1 || year == -1)
+        return;
+    if(*minDay == -1 || *minMonth == -1 || *minYear == -1) {
+        *minDay = day;
+        *minMonth = month;
+        *minYear = year;
+        return;
+    }
+    if(year < *minYear) {
+        *minDay = day;
+        *minMonth = month;
+        *minYear = year;
+        return;
+    }
+    if(year == *minYear) {
+        if(month < *minMonth) {
+            *minDay = day;
+            *minMonth = month;
+            return;
+        }
+        if(month == *minMonth) {
+            if(day < *minDay) {
+                *minDay = day;
+            }
+        }
+    }
+}
+
+
+//starting and ending date INCLUDED
+int daysBetween(int sDay, int sMonth, int sYear, int eDay, int eMonth, int eYear) {
+    return 1 + toEpochDay(eDay, eMonth, eYear) - toEpochDay(sDay, sMonth, sYear);
+}
+
+
+//taken from the implementation of JAVA
+int toEpochDay(int day, int month, int year) {
+    int y = year;
+    int m = month;
+    int total = 0;
+    total += 365 * y;
+    if (y >= 0) {
+        total += (y + 3) / 4 - (y + 99) / 100 + (y + 399) / 400;
+    }
+    else {
+        total -= y / -4 - y / -100 + y / -400;
+    }
+
+    total += (367 * m - 362) / 12;
+    total += day - 1;
+    if (m > 2) {
+        --total;
+        if (leapYear(year) == 0) {
+            --total;
+        }
+    }
+
+    return total - 719528;
+}
+
+
+int leapYear(int year){
+    //the year is not a leap year
+    if(year % 4 != 0) {
+        return 0;
+    }
+    if(year % 100 != 0) {
+        return 1;
+    }
+    if(year % 400 == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+
+int nDayInMonth(int month) {
+    switch(month) {
+        case 1:
+            return 31;
+        case 2:
+            return 28;
+        case 3:
+            return 31;
+        case 4:
+            return 30;
+        case 5:
+            return 31;
+        case 6:
+            return 30;
+        case 7:
+            return 31;
+        case 8:
+            return 31;
+        case 9:
+            return 30;
+        case 10:
+            return 31;
+        case 11:
+            return 30;
+        case 12:
+            return 31;
+        defualt:
+        {
+            printf("ERROR: Cannot calculate day in this month (%d) properly\n", month);
+            return -1;
+        }
+    }
+}
+
+
+int weekInYears(int day, int month, int year) {
+    int gap = daysBetween(minMaxDate.minDay, minMaxDate.minMonth, minMaxDate.minYear, day, month, year);
+    //useless but just to be sure
+    if(gap == 0)
+        return 0;
+    if(gap % 7 == 0)
+        return ((gap/7) - 1);
+    return gap/7;
+}
+
+
+int killed(Tuple t, int flag) {
+    int n1 = t.n_people_killed;
+    int n2 = t.n_pedestrian_killed;
+    int n3 = t.n_motor_killed;
+    int n4 = t.n_cyclist_killed;
+    if(n1 < 0)	n1 = 0;
+    if(n2 < 0) 	n2 = 0;
+    if(n3 < 0)	n3 = 0;
+    if(n4 < 0)	n4 = 0;
+
+    if(!flag)
+        return (n1||n2||n3||n4);
+    return n1+n2+n3+n4;
+}
+
+
+char * selectFactor(Tuple * currTuple, int position){
+    switch (position) {
+        case 0:
+            return currTuple->factor1;
+        case 1:
+            return currTuple->factor2;
+        case 2:
+            return currTuple->factor3;
+        case 3:
+            return currTuple->factor4;
+        case 4:
+            return currTuple->factor5;
+    }
+}
+
+
+FacList* factFind(char* str, FacList* list) {
+    FacList* ptr = list;
+    if(ptr->facName == NULL) {
+        return NULL;
+    }
+    while(ptr != NULL) {
+        if(strcmp(str, ptr->facName) == 0)
+            return ptr;
+        ptr = ptr->next;
+    }
+    return NULL;
+}
+
+
+bool isFactorPresent(char * factorName, FactorName * factorNames, int factorNameSize) {
+    for (int i = 0; i < factorNameSize; ++i) {
+        if (strcmp(factorName, factorNames[i].factorName) == 0)
+            return true;
+    }
+    strcpy(factorNames[factorNameSize].factorName, factorName);
+    return false;
+}
+
+
+void processBorough(BorList* borPunt){
+
+    borPunt->accidents = malloc(sizeof(int) * weeksNo);
+    borPunt->lethals = 0;
+    //init array
+    for (int i = 0; i < weeksNo; i++)
+        borPunt->accidents[i] = 0;
+
+    //Populate array
+    DateList* datePtr = borPunt->dates;
+    while (datePtr != NULL) {
+        if (datePtr->day != -1 && datePtr->month != -1 && datePtr->year != -1) {
+            int index = weekInYears(datePtr->day, datePtr->month, datePtr->year);
+            borPunt->accidents[index] = borPunt->accidents[index] + 1;
+            borPunt->lethals += datePtr->lethCount;
+        }
+
+        datePtr = datePtr->next;
+    }
+}
+
+
+bool isBoroughPresent(char * boroughName, BoroughName * boroughNames, int boroughNamesSize){
+    for (int i = 0; i < boroughNamesSize; ++i) {
+        if (strcmp(boroughName, boroughNames[i].boroughName) == 0)
+            return true;
+    }
+    strcpy(boroughNames[boroughNamesSize].boroughName, boroughName);
+    return false;
+}
+
+
+BorList * initializeBorList(BoroughName * boroughNames, int size) {
+    BorList * borList = malloc(sizeof(BorList) * size);
+#pragma parallel for
+    for (int i = 0; i < size; ++i) {
+        borList[i].borName = strdup(boroughNames[i].boroughName);
+        borList[i].accidents = malloc(sizeof(int) * weeksNo);
+    }
+    return borList;
+}
+
+
+int * initializeEmptyAccidentArray() {
+    int * accidents = malloc(sizeof(int) * weeksNo);
+#pragma parallel for
+    for (int i = 0; i < weeksNo; ++i) {
+        accidents[i] = 0;
+    }
+    return accidents;
+}
+
+
+BorList* borFind(char* str, BorList* list) {
+    BorList* ptr = list;
+    if(ptr->borName == NULL) {
+        return NULL;
+    }
+    while(ptr != NULL) {
+        if(strcmp(str, ptr->borName) == 0)
+            return ptr;
+        ptr = ptr->next;
+    }
+    return NULL;
+}
+
+
+int nonLethAccidents(Tuple t) {
+    int n5 = t.n_people_injured;
+    int n6 = t.n_pedestrian_injured;
+    int n7 = t.n_motor_injured;
+    int n8 = t.n_cyclist_injured;
+    if(n5 < 0)	n5 = 0;
+    if(n6 < 0) 	n6 = 0;
+    if(n7 < 0)	n7 = 0;
+    if(n8 < 0)	n8 = 0;
+    return n5+n6+n7+n8;
+}
+
+
+double cpuSecond(){
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return ((double)tp.tv_sec+(double)tp.tv_usec*1.e-6);
 }
 
