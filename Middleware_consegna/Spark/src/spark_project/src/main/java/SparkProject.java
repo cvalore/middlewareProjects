@@ -23,7 +23,7 @@ import java.util.Scanner;
 
 import static org.apache.spark.sql.functions.*;
 
-public class NyTest {
+public class SparkProject {
 
       public static void main(String[] args) {
 
@@ -48,7 +48,7 @@ public class NyTest {
 
             final SparkSession spark = SparkSession
                         .builder()
-                        .appName("NyTest")
+                        .appName("spark_project")
                         .master(master)
                         .getOrCreate();
 */
@@ -72,7 +72,7 @@ public class NyTest {
 
             final SparkSession spark = SparkSession
                         .builder()
-                        .appName("NyTest")
+                        .appName("spark_project")
                         .config("spark.executor.cores", core_exec)
                         .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
@@ -155,7 +155,8 @@ public class NyTest {
                     .select("date")
                     .agg(min("date"), max("date"));
 
-            //trascurabile ma guardando ui si vede che viene skippato lo stage del job
+            //this is not so relevant for performances,
+            //but can be seen in the ui of spark that the job is skipped
             minMaxDates.persist();
 
             final Date globalMinDate = minMaxDates.first().getDate(0);
@@ -201,28 +202,12 @@ public class NyTest {
                         lethAcc = lethalAccidentsByIndex.get(i);
                   else
                         lethAcc = 0;
-                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethAcc, "lethal accidents");            //problema se lookup di i non c'è?
+                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethAcc, "lethal accidents");
 
                   totalLethalAccidents += lethAcc;
             }
 
             System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
-
-/*
-            int [] lethAccidents = new int[weeksNo];
-            lethalAccidentsByIndex.forEach((k, v) -> lethAccidents[k] += v);
-            int totalLethalAccidents = 0;
-
-            System.out.print("\nQUERY 1:\n");
-            for(int i = 0; i < weeksNo; i++) {
-                  System.out.printf("\tWeek%-5d%-10d%-2s\n", i+1, lethAccidents[i], "lethal accidents");            //problema se lookup di i non c'è?
-
-                  totalLethalAccidents += lethAccidents[i];
-            }
-
-
-            System.out.printf("\t%d total lethal accidents over %d weeks, avg = %.2f%%\n", totalLethalAccidents, weeksNo, (100.0f*totalLethalAccidents)/weeksNo);
-*/
 
             long query1Time = System.nanoTime() - startQuery1Time;
             //</editor-fold>
@@ -293,6 +278,7 @@ public class NyTest {
                                     }
                               }
                               int lethal = (int)row.getAs("sum_death") > 0 ? 1 : 0;
+                              //1 -> borough
                               return new Tuple2<>(row.getString(1), new SupportClass3a(index, lethal));
             };
 

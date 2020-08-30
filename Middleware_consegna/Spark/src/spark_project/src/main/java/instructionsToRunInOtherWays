@@ -10,7 +10,7 @@ String file = args[0];
 
 final SparkSession spark = SparkSession
             .builder()
-            .appName("NyTest")
+            .appName("SparkProject")
             .getOrCreate();
 
  */
@@ -35,7 +35,7 @@ if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
 
 final SparkSession spark = SparkSession
             .builder()
-            .appName("NyTest")
+            .appName("SparkProject")
             .config("spark.executor.cores", core_exec)
             .config("spark.executor.memory", mem_exec)
             .getOrCreate();
@@ -61,7 +61,7 @@ if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
 
 final SparkSession spark = SparkSession
             .builder()
-            .appName("NyTest")
+            .appName("SparkProject")
             .master(master)
             .config("spark.executor.cores", core_exec)
             .config("spark.executor.memory", mem_exec)
@@ -85,7 +85,7 @@ if(file.equals("")) {
 
 final SparkSession spark = SparkSession
             .builder()
-            .appName("NyTest")
+            .appName("SparkProject")
             .master(master)
             .getOrCreate();
 
