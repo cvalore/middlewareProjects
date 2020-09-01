@@ -1,4 +1,14 @@
+OLD COMMANDS:
 aws s3 cp s3://carmelosparkbucket/spark_project.jar .
-
 spark-submit --class NyTest ./spark_project.jar s3n://carmelosparkbucket/db.csv 5 8g
+
+LINK TO THE VIDEO: 
+https://www.youtube.com/watch?v=hSWkKk36TS8
+
+NEW COMMANDS:
+aws s3 cp s3://sparkmiddleware/spark_project-cluster_parameters.jar .			//to copy the jar in the cloud 
+spark-submit --class SparkProject ./spark_project-cluster_parameters.jar s3n://sparkmiddleware/NYPD_Motor_Vehicle_Collisions_ridotto.csv 5 8g		//to launch
+
+
+
 
