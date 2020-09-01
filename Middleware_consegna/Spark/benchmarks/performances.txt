@@ -1,0 +1,110 @@
+1m 2w
+x1
+	It took 3.8347661 seconds to load data (and order it)
+	It took 14.738542 seconds to calculate query 1
+	It took 1.3559902 seconds to calculate query 2
+	It took 0.6314553 seconds to calculate query 3
+x2
+	It took 4.979898 seconds to load data (and order it)
+	It took 15.6555395 seconds to calculate query 1
+	It took 1.6625445 seconds to calculate query 2
+	It took 0.87709254 seconds to calculate query 3
+x4
+	It took 4.0078263 seconds to load data (and order it)
+	It took 19.929596 seconds to calculate query 1
+	It took 2.1004894 seconds to calculate query 2
+	It took 1.3941847 seconds to calculate query 3
+
+x12
+	It took 4.1341567 seconds to load data (and order it)
+	It took 39.112885 seconds to calculate query 1
+	It took 4.357517 seconds to calculate query 2
+	It took 3.3757586 seconds to calculate query 3
+
+x24
+	It took 4.6979833 seconds to load data (and order it)
+	It took 64.547745 seconds to calculate query 1
+	It took 8.279474 seconds to calculate query 2
+	It took 6.4688735 seconds to calculate query 3	
+
+1m 3w
+x1
+	It took 3.9491818 seconds to load data (and order it)
+	It took 13.14651 seconds to calculate query 1
+	It took 1.3492684 seconds to calculate query 2
+	It took 0.80697703 seconds to calculate query 3
+
+x2
+	It took 4.032497 seconds to load data (and order it)
+	It took 14.35582 seconds to calculate query 1
+	It took 1.6546512 seconds to calculate query 2
+	It took 1.1196429 seconds to calculate query 3
+
+x4
+	It took 4.2063103 seconds to load data (and order it)
+	It took 17.62661 seconds to calculate query 1
+	It took 2.1128783 seconds to calculate query 2
+	It took 0.98884344 seconds to calculate query 3
+	
+1m 4w
+x1
+	It took 4.0792737 seconds to load data (and order it)
+	It took 12.663571 seconds to calculate query 1
+	It took 1.2821949 seconds to calculate query 2
+	It took 0.7731144 seconds to calculate query 3
+
+x2
+	It took 3.965098 seconds to load data (and order it)
+	It took 13.874783 seconds to calculate query 1
+	It took 1.5389426 seconds to calculate query 2
+	It took 0.9206297 seconds to calculate query 3
+
+x4
+	It took 4.764653 seconds to load data (and order it)
+	It took 15.864763 seconds to calculate query 1
+	It took 1.9907088 seconds to calculate query 2
+	It took 0.977625 seconds to calculate query 3
+
+x12
+	It took 4.3905406 seconds to load data (and order it)
+	It took 27.281303 seconds to calculate query 1
+	It took 3.8274581 seconds to calculate query 2
+	It took 2.5993397 seconds to calculate query 3
+
+x24
+	It took 4.0291233 seconds to load data (and order it)
+	It took 43.941612 seconds to calculate query 1
+	It took 5.0962367 seconds to calculate query 2
+	It took 3.8405318 seconds to calculate query 3
+	
+1m 6w
+x1
+	It took 4.092501 seconds to load data (and order it)
+	It took 11.962558 seconds to calculate query 1
+	It took 1.2074969 seconds to calculate query 2
+	It took 0.75770074 seconds to calculate query 3
+
+x2
+	It took 4.2417154 seconds to load data (and order it)
+	It took 13.658966 seconds to calculate query 1
+	It took 1.5708065 seconds to calculate query 2
+	It took 0.7755116 seconds to calculate query 3
+
+x4
+	It took 4.050444 seconds to load data (and order it)
+	It took 15.347224 seconds to calculate query 1
+	It took 1.840473 seconds to calculate query 2
+	It took 1.2132958 seconds to calculate query 3
+
+x12
+	It took 4.159525 seconds to load data (and order it)
+	It took 20.745544 seconds to calculate query 1
+	It took 2.530951 seconds to calculate query 2
+	It took 1.5712402 seconds to calculate query 3
+
+x24
+	It took 4.6013117 seconds to load data (and order it)
+	It took 33.517284 seconds to calculate query 1
+	It took 3.7729776 seconds to calculate query 2
+	It took 2.8101268 seconds to calculate query 3
+

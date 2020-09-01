@@ -1,0 +1,41 @@
+CREATE TABLE Users (
+uuid varchar(20) PRIMARY KEY,
+name varchar(50),
+selflink varchar(150),
+userslink varchar(150),
+imageslink varchar(150),
+uploadfolderlink varchar(150),
+homelink varchar(150));
+
+CREATE TABLE Images (
+useruuid varchar(20), 
+imageuuid varchar(20), 
+title varchar(50), 
+path varchar(70), 
+width integer, 
+height integer, 
+selfLink varchar(150), 
+userLink varchar(150), 
+userImagesLink varchar(150), 
+imagesLink varchar(150),
+usersLink varchar(150),
+homelink varchar(150), 
+PRIMARY KEY(useruuid, imageuuid));
+
+
+CREATE TABLE images (
+useruuid varchar(20),
+imageuuid varchar(20),
+title varchar(50),
+width integer,
+height integer,
+selflink varchar(150),
+userlink varchar(150),
+userImagesLink varchar(150),
+imageslink varchar(150),
+userslink varchar(150)
+homelink varchar(150),
+picture bytea,
+PRIMARY KEY(useruuid, imageuuid));
+
+

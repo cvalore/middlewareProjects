@@ -21,6 +21,12 @@ x12
 	It took 4.357517 seconds to calculate query 2
 	It took 3.3757586 seconds to calculate query 3
 
+x24
+	It took 4.6979833 seconds to load data (and order it)
+	It took 64.547745 seconds to calculate query 1
+	It took 8.279474 seconds to calculate query 2
+	It took 6.4688735 seconds to calculate query 3	
+
 1m 3w
 x1
 	It took 3.9491818 seconds to load data (and order it)
@@ -64,6 +70,12 @@ x12
 	It took 27.281303 seconds to calculate query 1
 	It took 3.8274581 seconds to calculate query 2
 	It took 2.5993397 seconds to calculate query 3
+
+x24
+	It took 4.0291233 seconds to load data (and order it)
+	It took 43.941612 seconds to calculate query 1
+	It took 5.0962367 seconds to calculate query 2
+	It took 3.8405318 seconds to calculate query 3
 	
 1m 6w
 x1
@@ -89,4 +101,10 @@ x12
 	It took 20.745544 seconds to calculate query 1
 	It took 2.530951 seconds to calculate query 2
 	It took 1.5712402 seconds to calculate query 3
+
+x24
+	It took 4.6013117 seconds to load data (and order it)
+	It took 33.517284 seconds to calculate query 1
+	It took 3.7729776 seconds to calculate query 2
+	It took 2.8101268 seconds to calculate query 3
 
