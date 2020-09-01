@@ -1,0 +1,6 @@
+http://carmelo-polimi-res-server.herokuapp.com/resserver/api/
+
+
+c6e7e845 -> pass -> USER
+
+admin -> pass -> ADMIN

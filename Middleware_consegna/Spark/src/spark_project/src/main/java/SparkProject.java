@@ -32,7 +32,7 @@ public class SparkProject {
             Logger.getLogger("akka").setLevel(Level.OFF);
 
             /* TO RUN IN LOCAL */
-/*
+
             String file = "";
             String master = "local[4]";
             if(args.length >= 1) {
@@ -51,9 +51,37 @@ public class SparkProject {
                         .appName("spark_project")
                         .master(master)
                         .getOrCreate();
-*/
-            /* TO RUN IN CLOUD SPECIFYING PARAM*/
 
+
+            /*TO LAUNCH IN LOCAL SPECIFYING PARAM*/
+            /*
+            String file = "";
+            String master = "local[4]";
+            String core_exec = "";
+            String mem_exec = "";
+            if(args.length >= 1) {
+                  master = args[0];
+                  file = args.length >= 2 ? args[1] : "";
+                  core_exec = args.length >= 3 ? args[2] : "";
+                  mem_exec = args.length >= 4 ? args[3] : "";
+            }
+
+            if(file.equals("") || core_exec.equals("") || mem_exec.equals("")) {
+                  System.out.println("ERROR: insert file path and name, then num of exec, then core for exec, then mem for exec");
+                  return;
+            }
+
+            final SparkSession spark = SparkSession
+                        .builder()
+                        .appName("SparkProject")
+                        .master(master)
+                        .config("spark.executor.cores", core_exec)
+                        .config("spark.executor.memory", mem_exec)
+                        .getOrCreate();
+            */
+
+            /* TO RUN IN CLOUD SPECIFYING PARAM*/
+            /*
             String file = "";
             String core_exec = "";
             String mem_exec = "";
@@ -76,7 +104,7 @@ public class SparkProject {
                         .config("spark.executor.cores", core_exec)
                         .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
-
+            */
 
 
             //</editor-fold>

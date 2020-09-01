@@ -33,7 +33,8 @@ selflink varchar(150),
 userlink varchar(150),
 userImagesLink varchar(150),
 imageslink varchar(150),
-userslink varchar(150),
+userslink varchar(150)
+homelink varchar(150),
 picture bytea,
 PRIMARY KEY(useruuid, imageuuid));
 

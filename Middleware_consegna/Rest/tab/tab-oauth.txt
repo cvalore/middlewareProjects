@@ -1,0 +1,51 @@
+CREATE TABLE oauth_client_details (
+  client_id VARCHAR(256) NOT NULL PRIMARY KEY,
+  client_secret VARCHAR(256) NOT NULL,
+  authorized_grant_types VARCHAR(256) NOT NULL,
+  redirect_url VARCHAR(256) NOT NULL,
+  authorities VARCHAR(256)
+);
+
+CREATE TABLE oauth_issued_codes (
+  code VARCHAR(256) NOT NULL PRIMARY KEY,
+  client_id VARCHAR(256)  NOT NULL,
+  redirect_url VARCHAR(256) NOT NULL,
+  expires_in TIMESTAMP NOT NULL
+);
+
+CREATE TABLE oauth_expired_codes (
+  code VARCHAR(256) NOT NULL PRIMARY KEY,
+  client_id VARCHAR(256)  NOT NULL,
+  redirect_url VARCHAR(256) NOT NULL
+);
+
+CREATE TABLE oauth_issued_tokens (
+  token VARCHAR(288)  NOT NULL PRIMARY KEY,
+  code VARCHAR(288) NOT NULL
+);
+
+CREATE TABLE oauth_expired_tokens (
+  token VARCHAR(288)  NOT NULL PRIMARY KEY,
+  code VARCHAR(288) NOT NULL
+);
+
+CREATE TABLE oauth_users (
+  username VARCHAR(50)  NOT NULL PRIMARY KEY,
+  password VARCHAR(200) NOT NULL,
+  enabled  BOOLEAN      NOT NULL
+);
+
+
+CREATE TABLE oauth_user_authorities (
+  username  VARCHAR(50) NOT NULL,
+  authority VARCHAR(50) NOT NULL,
+  CONSTRAINT fk_oauth_user_authorities_oauth_users FOREIGN KEY (username) REFERENCES oauth_users(username)
+);
+
+
+CREATE UNIQUE INDEX ix_auth_username
+  ON oauth_user_authorities(username, authority);
+
+-------------------------------------------------------
+
+INSERT INTO oauth_client_details VALUES ('client1', 'secret1', 'authorization_code', 'http://localhost:8082/client/api/callback', 'ROLE_USER');
