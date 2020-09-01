@@ -33,7 +33,7 @@ public class SparkProject {
 
             /* TO RUN IN LOCAL */
 
-            String file = "";
+            /*String file = "";
             String master = "local[4]";
             if(args.length >= 1) {
                   master = args[0];
@@ -51,11 +51,11 @@ public class SparkProject {
                         .appName("spark_project")
                         .master(master)
                         .getOrCreate();
-
+            */
 
             /*TO LAUNCH IN LOCAL SPECIFYING PARAM*/
-            /*
-            String file = "";
+
+            /*String file = "";
             String master = "local[4]";
             String core_exec = "";
             String mem_exec = "";
@@ -81,7 +81,7 @@ public class SparkProject {
             */
 
             /* TO RUN IN CLOUD SPECIFYING PARAM*/
-            /*
+
             String file = "";
             String core_exec = "";
             String mem_exec = "";
@@ -104,7 +104,7 @@ public class SparkProject {
                         .config("spark.executor.cores", core_exec)
                         .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
-            */
+
 
 
             //</editor-fold>
@@ -366,9 +366,9 @@ public class SparkProject {
             System.out.println("It took " + query2Time/1000000000.0f + " seconds to calculate query 2");
             System.out.println("It took " + query3Time/1000000000.0f + " seconds to calculate query 3");
 
-            /*Scanner scanner = new Scanner(System.in);
+            Scanner scanner = new Scanner(System.in);
             scanner.nextLine();
-            spark.close();*/
+            spark.close();
 
             //</editor-fold>
 
