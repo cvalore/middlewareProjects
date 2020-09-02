@@ -129,13 +129,13 @@ int msgtag = 0;
 MPI_Datatype Tupletype;
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        printf("ERROR: Insert the name of the source file\n");
+    if (argc < 3) {
+        printf("ERROR: Insert the name of the source file and the number of OpenMP threads\n");
         return -1;
     }
 
 	//Give it through command line
-    //omp_set_num_threads(4);
+    omp_set_num_threads(argv[2]);
     
 	//Data structures
     FILE *fin = fopen(argv[1], "r");

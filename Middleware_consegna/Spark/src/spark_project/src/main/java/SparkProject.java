@@ -33,7 +33,7 @@ public class SparkProject {
 
             /* TO RUN IN LOCAL */
 
-            /*String file = "";
+            String file = "";
             String master = "local[4]";
             if(args.length >= 1) {
                   master = args[0];
@@ -51,7 +51,7 @@ public class SparkProject {
                         .appName("spark_project")
                         .master(master)
                         .getOrCreate();
-            */
+
 
             /*TO LAUNCH IN LOCAL SPECIFYING PARAM*/
 
@@ -82,7 +82,7 @@ public class SparkProject {
 
             /* TO RUN IN CLOUD SPECIFYING PARAM*/
 
-            String file = "";
+            /*String file = "";
             String core_exec = "";
             String mem_exec = "";
             if(args.length >= 1) {
@@ -105,7 +105,7 @@ public class SparkProject {
                         .config("spark.executor.memory", mem_exec)
                         .getOrCreate();
 
-
+            */
 
             //</editor-fold>
 
