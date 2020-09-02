@@ -1,3 +1,6 @@
+
+LINK TO THE GUIDE PAGE: https://mpitutorial.com/tutorials/launching-an-amazon-ec2-mpi-cluster/
+
 starcluster createkey openmpiprojectkey020920 -o ~/.ssh/openmpiprojectkey020920.rsa
 
 TO SSH THE MASTER NODE: starcluster sshmaster mpicluster
@@ -5,6 +8,10 @@ TO SSH THE MASTER NODE: starcluster sshmaster mpicluster
 TO START THE MPICLUSTER:
 starcluster start mpicluster
 
+TO COPY INTO THE CLUSTER MASTER NODE:
+starcluster put mpicluster /home/alessio/Scrivania/middlewareProjects/Middleware_consegna/OpenMP-MPI/src/PartialParallelWithMPI.c /home/ubuntu
+
+
 mpicc -fopenmp nome.c -o nome_exec
 
-mpirun -np 2 -hosts master,node001 ./nome_exec db.csv
+mpirun -np 2 -hosts master,node001 ./nome_exec db.csv num_threads

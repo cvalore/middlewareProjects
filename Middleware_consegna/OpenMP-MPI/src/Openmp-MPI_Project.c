@@ -135,7 +135,8 @@ int main(int argc, char** argv) {
     }
 
 	//Give it through command line
-    omp_set_num_threads(argv[2]);
+    
+    omp_set_num_threads(atoi(argv[2]));
     
 	//Data structures
     FILE *fin = fopen(argv[1], "r");
