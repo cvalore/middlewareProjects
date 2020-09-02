@@ -1,0 +1,10 @@
+starcluster createkey openmpiprojectkey020920 -o ~/.ssh/openmpiprojectkey020920.rsa
+
+TO SSH THE MASTER NODE: starcluster sshmaster mpicluster
+
+TO START THE MPICLUSTER:
+starcluster start mpicluster
+
+mpicc -fopenmp nome.c -o nome_exec
+
+mpirun -np 2 -hosts master,node001 ./nome_exec db.csv
