@@ -1,0 +1,10 @@
+In average after 10 iteration:
+Setup MPI data time avg: 0.000136
+Loading data time avg: 3.306385
+Query 1 calculation time avg: 0.097110
+Query 1 print time avg: 0.000262
+Query 2 support creation time avg: 1.381545
+Query 2 calculation and print time avg: 0.000088
+Query 3 support creation time avg: 0.219139
+Query 3 calculation and print time avg: 0.001397
+Free structures time avg: 0.092875
