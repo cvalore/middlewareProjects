@@ -3,6 +3,11 @@ LINK TO THE GUIDE PAGE: https://mpitutorial.com/tutorials/launching-an-amazon-ec
 
 starcluster createkey openmpiprojectkey020920 -o ~/.ssh/openmpiprojectkey020920.rsa
 
+CONFIG FILE IS IN /home/alessio/.starcluster
+
+le credenziali cambiano ogni volta!
+PASSWORD AMAZON EDUCATE Borraccia97!
+
 TO SSH THE MASTER NODE: starcluster sshmaster mpicluster
 
 TO START THE MPICLUSTER:
