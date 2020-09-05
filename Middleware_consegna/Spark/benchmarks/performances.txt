@@ -94,7 +94,7 @@ x4
 	It took 4.050444 seconds to setup spark session (spark overhead)
 	It took 15.347224 seconds to load data and calculate query 1
 	It took 1.840473 seconds to calculate query 2
-	It took 1.2132958 seconds to calculate query 3
+	It took 0.922958 seconds to calculate query 3
 
 x12
 	It took 4.159525 seconds to setup spark session (spark overhead)
